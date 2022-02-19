@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
+		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
 		AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4DA27B8BED700ED174E /* ContentView.swift */; };
 		AA90C4DD27B8BEDD00ED174E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA90C4DC27B8BEDD00ED174E /* Assets.xcassets */; };
@@ -34,6 +36,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
+		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeneShogiSwiftApp.swift; sourceTree = "<group>"; };
 		AA90C4DA27B8BED700ED174E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -98,6 +102,8 @@
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
 				AA90C4DC27B8BEDD00ED174E /* Assets.xcassets */,
 				AA90C4DE27B8BEDD00ED174E /* Preview Content */,
+				AA22E00927BA72BE0075371D /* MatchManager.swift */,
+				AA22E00B27BA73580075371D /* USIClient.swift */,
 			);
 			path = NeneShogiSwift;
 			sourceTree = "<group>";
@@ -258,6 +264,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,
+				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
+				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

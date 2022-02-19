@@ -8,9 +8,30 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var latestMessage: String = "Press Start"
+    @State var matchManager: MatchManager?
+    
+    func start() {
+        if matchManager != nil {
+            return
+        }
+        let shogiUIInterface = ShogiUIInterface(displayMessage: {message in DispatchQueue.main.async {
+            self.latestMessage = message
+        }
+            
+        })
+        matchManager = MatchManager(shogiUIInterface: shogiUIInterface)
+        matchManager?.start()
+    }
+    
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        VStack {
+            Text(latestMessage)
+                .padding()
+            Button(action: start) {
+                Text("Start")
+            }.padding()
+        }
     }
 }
 
