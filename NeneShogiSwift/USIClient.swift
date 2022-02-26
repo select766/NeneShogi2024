@@ -15,9 +15,11 @@ class USIClient {
     var connection: NWConnection?
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
+    var position: Position // 暫定的にUSIClientが対局を管理している
     init(matchManager: MatchManager) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "usiClient")
+        self.position = Position()
     }
     
     func start() {
@@ -83,7 +85,7 @@ class USIClient {
             return
         }
         let commandType = splits[0]
-        let commandArg = splits.count == 2 ? splits[1] : nil
+        let commandArg = splits.count == 2 ? String(splits[1]) : nil
         switch commandType {
         case "usi":
             // TODO: add "option"
@@ -95,9 +97,20 @@ class USIClient {
         case "usinewgame":
             break
         case "position":
+            if let commandArg = commandArg {
+                position.setUSIPosition(positionArg: commandArg)
+            }
             break
         case "go":
-            sendUSI(message: "bestmove 7g7f")
+            let moves = position.generateMoveList()
+            let bestMove: String
+            if moves.count > 0 {
+                let rnd = Int.random(in: 0..<moves.count)
+                bestMove = moves[rnd].toUSIString()
+            } else {
+                bestMove = "resign"
+            }
+            sendUSI(message: "bestmove \(bestMove)")
         case "gameover":
             break
         case "quit":

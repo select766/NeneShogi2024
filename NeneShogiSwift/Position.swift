@@ -1,0 +1,703 @@
+let hirateBoard: [Piece] = [
+    18, 0, 17, 0, 0, 0, 1, 0, 2,
+    19, 21, 17, 0, 0, 0, 1, 6, 3,
+    20, 0, 17, 0, 0, 0, 1, 0, 4,
+    23, 0, 17, 0, 0, 0, 1, 0, 7,
+    24, 0, 17, 0, 0, 0, 1, 0, 8,
+    23, 0, 17, 0, 0, 0, 1, 0, 7,
+    20, 0, 17, 0, 0, 0, 1, 0, 4,
+    19, 22, 17, 0, 0, 0, 1, 5, 3,
+    18, 0, 17, 0, 0, 0, 1, 0, 2
+].map({v in Piece(v)})
+
+let hirateHands: [[Int]] = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+
+// 本当はZobrist hashとかのほうがよさそうだが簡単に使える実装でごまかす
+// https://ja.wikipedia.org/wiki/%E5%B7%A1%E5%9B%9E%E5%86%97%E9%95%B7%E6%A4%9C%E6%9F%BB
+let crcTable: [UInt32] = crcInitializer()
+
+func crcInitializer() -> [UInt32] {
+    var table = [UInt32](repeating: 0, count: 256)
+    for i in UInt32(0)..<UInt32(256) {
+        var c = i
+        for _ in 0..<8 {
+            c = (c & 1) != 0 ? (0xEDB88320 ^ (c >> 1)) : (c >> 1)
+        }
+        table[Int(i)] = c
+    }
+    return table
+}
+
+func crc32(data: [UInt8]) -> UInt32 {
+    var c: UInt32 = 0xffffffff
+    for d in data {
+        c = crcTable[Int((c ^ UInt32(d)) & 0xff)] ^ (c >> 8)
+    }
+    return c & 0xffffffff
+}
+
+func crc32(pieces: ArraySlice<Piece>) -> UInt32 {
+    return crc32(data: pieces.map({v in UInt8(v.piece)}))
+}
+
+func crc32(hands: [Int]) -> UInt32 {
+    return crc32(data: hands.map({v in UInt8(v)}))
+}
+
+let _shortAttackTable = [
+    [],
+    [ [ 0, -1 ] ], // 歩
+    [], // 香
+    [ [ -1, -2 ],[ 1, -2 ] ], // 桂
+    [ [ -1, -1 ],[ 0,-1 ],[ 1,-1 ],[ -1,1 ],[ 1,1 ] ],//銀
+    [],//角
+    [],//飛
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//金
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ -1,1 ],[ 0,1 ],[ 1,1 ] ],//玉
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//と
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//成香
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//成桂
+    [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//成銀
+    [ [ 0,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//馬
+    [ [ -1,-1 ],[ 1,-1 ],[ -1,1 ],[ 1,1 ] ],//竜
+]
+
+let _maxNonPromoteRankTable = [
+    0,
+    3,  // 歩(必ず成る)
+    2,  // 香(2段目では必ず成る)
+    2,  // 桂
+    0,  // 銀
+    3,  // 角(必ず成る)
+    3,  // 飛(必ず成る)
+    0,  // 金
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+]
+
+let _longAttackTable = [
+    [],
+    [],  // 歩
+    [ [ 0, -1 ] ],  // 香
+    [],  // 桂
+    [],  // 銀
+    [ [ -1, -1 ],[ 1, -1 ],[ -1, 1 ],[ 1, 1 ] ],  // 角
+    [ [ 0, -1 ],[ -1, 0 ],[ 1, 0 ],[ 0, 1 ] ],  // 飛
+    [],  // 金
+    [],  // 玉
+    [],  // と
+    [],  // 成香
+    [],  // 成桂
+    [],  // 成銀
+    [ [ -1, -1 ],[ 1, -1 ],[ -1, 1 ],[ 1, 1 ] ],  // 馬
+    [ [ 0, -1 ],[ -1, 0 ],[ 1, 0 ],[ 0, 1 ] ],  // 竜
+]
+
+let _maxDropRankTable = [0,1,1,2,0,0,0,0]
+
+let _rotatePieceTable = [
+    Piece.PIECE_ZERO, Piece.W_PAWN, Piece.W_LANCE, Piece.W_KNIGHT,
+    Piece.W_SILVER, Piece.W_BISHOP, Piece.W_ROOK, Piece.W_GOLD,
+    Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE, Piece.W_PRO_KNIGHT,
+    Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON, Piece.W_QUEEN,
+    Piece.PIECE_ZERO, Piece.B_PAWN, Piece.B_LANCE, Piece.B_KNIGHT,
+    Piece.B_SILVER, Piece.B_BISHOP, Piece.B_ROOK, Piece.B_GOLD,
+    Piece.B_KING, Piece.B_PRO_PAWN, Piece.B_PRO_LANCE, Piece.B_PRO_KNIGHT,
+    Piece.B_PRO_SILVER, Piece.B_HORSE, Piece.B_DRAGON, Piece.B_QUEEN
+]
+
+let _checkAttackDirs = [
+    [-1,-1],
+    [0,-1],
+    [1,-1],
+    [-1,0],
+    [1,0],
+    [-1,1],
+    [0,1],
+    [1,1]
+]
+
+let _checkShortAttackPieces = [
+    [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左上
+    [ Piece.W_PAWN, Piece.W_LANCE, Piece.W_SILVER, Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN,
+    Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 上
+    [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右上
+    [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左
+    [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右
+    [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_KING, Piece.W_HORSE, Piece.W_DRAGON ],  // 左下
+    [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
+    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 下
+    [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_KING, Piece.W_HORSE, Piece.W_DRAGON ],  // 右下
+]
+
+let _checkLongAttackPieces = [
+    [ Piece.W_BISHOP, Piece.W_HORSE ],  // 左上
+    [ Piece.W_LANCE, Piece.W_ROOK, Piece.W_DRAGON ],  // 上
+    [ Piece.W_BISHOP, Piece.W_HORSE ],  // 右上
+    [ Piece.W_ROOK, Piece.W_DRAGON ],  // 左
+    [ Piece.W_ROOK, Piece.W_DRAGON ],  // 右
+    [ Piece.W_BISHOP, Piece.W_HORSE ],  // 左下
+    [ Piece.W_ROOK, Piece.W_DRAGON ],  // 下
+    [ Piece.W_BISHOP, Piece.W_HORSE ],  // 右下
+]
+
+class Position {
+    var board: [Piece]
+    var hand: [[Int]]
+    var sideToMove: PColor
+    var gamePly: Int
+    
+    init() {
+        board = hirateBoard
+        hand = hirateHands
+        sideToMove = PColor.BLACK
+        gamePly = 1
+    }
+    
+    func setHirate() {
+        board = hirateBoard
+        hand = hirateHands
+        sideToMove = PColor.BLACK
+        gamePly = 1
+    }
+    
+    func doMove(move: Move) -> UndoMoveInfo {
+        var fromSq: Square, toSq: Square, handType: Int, lastFromValue: Piece, lastToValue: Piece, lastHandValue: Int
+        if move.isDrop {
+            // 駒打ち
+            // 持ち駒を減らす
+            let ptHand = move.moveDroppedPiece - Piece.PIECE_HAND_ZERO
+            handType = sideToMove.color * 7 + ptHand
+            lastHandValue = hand[sideToMove.color][ptHand]
+            hand[sideToMove.color][ptHand] = lastHandValue - 1
+            var piece = move.moveDroppedPiece
+            if sideToMove == PColor.WHITE {
+                piece += Piece.PIECE_WHITE
+            }
+            toSq = move.moveTo
+            board[toSq.square] = Piece(piece)
+            
+            // 置く前はコマがなかったはず
+            fromSq = toSq
+            lastFromValue = Piece.PIECE_ZERO
+            lastToValue = Piece.PIECE_ZERO
+        } else {
+            // 駒の移動
+            fromSq = move.moveFrom
+            toSq = move.moveTo
+            let capturedPiece = board[toSq.square]
+            if (capturedPiece != Piece.PIECE_ZERO) {
+                // 持ち駒を増やす
+                // 駒種に変換
+                let pt = capturedPiece.piece % Piece.PIECE_RAW_NB
+                let ptHand = pt - Piece.PIECE_HAND_ZERO
+                handType = sideToMove.color * 7 + ptHand
+                lastHandValue = hand[sideToMove.color][ptHand]
+                hand[sideToMove.color][ptHand] = lastHandValue + 1
+            } else {
+                // 持ち駒は不変
+                // 便宜上、hand[sideToMove.color][0]の値を保存
+                handType = 0
+                lastHandValue = hand[sideToMove.color][0]
+            }
+            
+            lastFromValue = board[fromSq.square]
+            board[fromSq.square] = Piece.PIECE_ZERO
+            lastToValue = capturedPiece
+            board[toSq.square] = Piece(lastFromValue.piece + (move.isPromote ? Piece.PIECE_PROMOTE : 0))
+        }
+        
+        sideToMove = sideToMove.invert()
+        gamePly += 1
+        return UndoMoveInfo(fromSq: fromSq, fromValue: lastFromValue, toSq: toSq, toValue: lastToValue, handType: handType, handValue: lastHandValue)
+    }
+    
+    func undoMove(undoMoveInfo: UndoMoveInfo) {
+        gamePly -= 1
+        sideToMove = sideToMove.invert()
+        hand[sideToMove.color][undoMoveInfo.handType] = undoMoveInfo.handType
+        board[undoMoveInfo.fromSq.square] = undoMoveInfo.fromValue
+        board[undoMoveInfo.toSq.square] = undoMoveInfo.toValue
+    }
+    
+    func hash() -> UInt64 {
+        let upper = crc32(pieces: board[..<41]) ^ crc32(hands: hand[0])
+        let lower = crc32(pieces: board[41...]) ^ crc32(hands: hand[1])
+        return UInt64(upper) << 32 | UInt64(lower)
+    }
+    
+    func eqBoard(other: Position) -> Bool {
+        if (sideToMove != other.sideToMove) {
+            return false;
+        }
+        if (board != other.board) {
+            return false;
+        }
+        if (hand != other.hand) {
+            return false;
+        }
+        return true
+    }
+    
+    /*
+    盤上の駒を動かす手をすべて生成する。
+    先手番を前提とする。
+    ただし、香車の2段目・歩・角・飛の不成りおよび行き場のない駒を生じる手は除く。
+    */
+    func _generateMoveMove() -> [Move] {
+        var moveList: [Move] = []
+        for fromFile in 0..<9 {
+            for fromRank in 0..<9 {
+                let fromSq = Square.fromFileRank(file: fromFile, rank: fromRank)
+                let fromPiece = board[fromSq.square]
+                if !fromPiece.isColor(color: PColor.BLACK) {
+                    continue
+                }
+                let canPromote = fromPiece.piece <= Piece.B_ROOK.piece
+                let maxNonPromoteRank = _maxNonPromoteRankTable[fromPiece.piece]
+                // 短い利きの処理
+                for shortAttack in _shortAttackTable[fromPiece.piece] {
+                    let x = shortAttack[0]
+                    let y = shortAttack[1]
+                    let toFile = fromFile + x
+                    let toRank = fromRank + y
+                    guard let toSq = Square.fromFileRankIfValid(file: toFile, rank: toRank) else {
+                        continue
+                    }
+                    let toPiece = board[toSq.square]
+                    // 自分の駒があるところには進めない
+                    if (toPiece.isColor(color: PColor.BLACK)) {
+                        continue
+                    }
+                    if toRank >= maxNonPromoteRank {
+                        // 行き場のない駒にはならない(&無意味な不成ではない)
+                        moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: false))
+                    }
+                    if canPromote && (fromRank < 3 || toRank < 3) {
+                        // 成れる駒で、成る条件を満たす
+                        moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: true))
+                    }
+                }
+
+                //長い利きの処理
+                for longAttack in _longAttackTable[fromPiece.piece] {
+                    let x = longAttack[0]
+                    let y = longAttack[1]
+                    var toFile = fromFile
+                    var toRank = fromRank
+                    while true {
+                        toFile += x
+                        toRank += y
+                        guard let toSq = Square.fromFileRankIfValid(file: toFile, rank: toRank) else {
+                            break
+                        }
+                        let toPiece = board[toSq.square]
+                        // 自分の駒があるところには進めない
+                        if (toPiece.isColor(color: PColor.BLACK)) {
+                            break
+                        }
+                        if toRank >= maxNonPromoteRank && fromRank >= maxNonPromoteRank {
+                            // 成って損がないのに成らない状況以外(角・飛)
+                            moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: false))
+                        }
+                        if canPromote && (fromRank < 3 || toRank < 3) {
+                            // 成れる駒で、成る条件を満たす
+                            moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: true))
+                        }
+                        if toPiece.isExist() {
+                            // 白駒があるので、これ以上進めない
+                            break
+                        }
+                    }
+                }
+            }
+        }
+        return moveList
+    }
+    
+    func _generateMoveDrop() -> [Move] {
+        var moveList: [Move] = []
+        // 二歩を避けるため、歩がすでにある筋を列挙
+        var pawnFiles = Array(repeating: false, count: 9)
+        for toFile in 0..<9 {
+            for toRank in 0..<9 {
+                let toSq = Square.fromFileRank(file: toFile, rank: toRank)
+                let toPiece = board[toSq.square]
+                if toPiece == Piece.B_PAWN {
+                    pawnFiles[toFile] = true
+                    break
+                }
+            }
+        }
+        
+        for toFile in 0..<9 {
+            for toRank in 0..<9 {
+                let toSq = Square.fromFileRank(file: toFile, rank: toRank)
+                let toPiece = board[toSq.square]
+                if toPiece.isExist() {
+                    // 駒のある場所には打てない
+                    continue
+                }
+                
+                for pt in Piece.PIECE_HAND_ZERO..<Piece.PIECE_HAND_NB {
+                    if hand[0][pt - Piece.PIECE_HAND_ZERO] > 0 {
+                        if pt == Piece.PAWN && pawnFiles[toFile] {
+                            // 二歩
+                            continue
+                        }
+                        
+                        let maxDropRank = _maxDropRankTable[pt]
+                        if toRank < maxDropRank {
+                            continue
+                        }
+                        
+                        moveList.append(Move.makeMoveDrop(moveDroppedPiece: pt, moveTo: toSq))
+                    }
+                }
+            }
+        }
+        return moveList
+    }
+    
+    func generateMoveList() -> [Move] {
+        if sideToMove == PColor.BLACK {
+            return _generateMoveListBlack()
+        } else {
+            rotatePositionInplace()
+            let blackMoveList = _generateMoveListBlack()
+            var moveList: [Move] = []
+            for rotMove in blackMoveList {
+                let toSq = Square(Square.SQ_NB - 1 - rotMove.moveTo.square)
+                if rotMove.isDrop {
+                    moveList.append(Move.makeMoveDrop(moveDroppedPiece: rotMove.moveDroppedPiece, moveTo: toSq))
+                } else {
+                    let fromSq = Square(Square.SQ_NB - 1 - rotMove.moveFrom.square)
+                    moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: rotMove.isPromote))
+                }
+            }
+            rotatePositionInplace()
+            return moveList
+        }
+    }
+
+    func _generateMoveListBlack() -> [Move] {
+        let possibleList = _generateMoveMove() + _generateMoveDrop()
+        var legalList: [Move] = []
+        for m in possibleList {
+            var legal = true
+            let undoInfo = doMove(move: m)
+            // 王手放置チェック
+            if (_inCheckBlack()) {
+                // 後手番になっているのに先手が王手をかけられている
+                legal = false
+            }
+            // 打ち歩詰めチェック
+            if legal && m.isDrop && m.moveDroppedPiece == Piece.PAWN {
+                /*
+                王手放置のときにチェックすると、玉を取る手が生成されてバグる
+                現在の手番(後手)が詰んでいるとき、打ち歩詰め
+                玉の頭に打った時だけ判定すればよい
+                */
+                let whiteKingCheckPos = m.moveTo.square - 1 // 1段目に打つ手は生成しないので、必ず盤内
+                if board[whiteKingCheckPos] == Piece.W_KING {
+                    if generateMoveList().isEmpty {
+                        legal = false
+                    }
+                }
+            }
+            undoMove(undoMoveInfo: undoInfo)
+            if legal {
+                legalList.append(m)
+            }
+        }
+        
+        return legalList
+    }
+    
+    /*
+    先手が王手された状態かどうかをチェックする。
+    先手が指して、後手番状態で呼び出すことも可能。この場合、王手放置のチェックとなる。
+    */
+    func _inCheckBlack() -> Bool {
+        /*
+        先手玉からみて各方向に後手の駒があれば、王手されていることになる。
+        例えば、先手玉の1つ上(y-方向)に後手歩があれば王手。
+        先手玉の右下に、他の駒に遮られずに角があれば王手。
+        長い利きの場合、途中のマスがすべて空でなければならない。
+        */
+        var bkSq = Square(0) // black kingの位置
+        for sq in 0..<Square.SQ_NB {
+            if board[sq] == Piece.B_KING {
+                bkSq = Square(sq)
+                break
+            }
+        }
+
+        let bkFile = bkSq.file
+        let bkRank = bkSq.rank
+        for dirI in 0..<_checkAttackDirs.count {
+            let dir = _checkAttackDirs[dirI]
+            let x = dir[0]
+            let y = dir[1]
+            var attFile = bkFile + x//attacker's file
+            var attRank = bkRank + y
+            guard let attSq = Square.fromFileRankIfValid(file: attFile, rank: attRank) else {
+                continue
+            }
+            
+            let attPiece = board[attSq.square]
+            if attPiece.isExist() {
+                // 隣に駒があるなら、それが玉に効く種類かどうか判定
+                if _checkShortAttackPieces[dirI].contains(attPiece) {
+                    // 短い利きが有効
+                    return true
+                }
+            } else {
+                // マスが空なら、長い利きをチェック
+                while true {
+                    attFile += x
+                    attRank += y
+                    guard let attSq = Square.fromFileRankIfValid(file: attFile, rank: attRank) else {
+                        break
+                    }
+                    let attPiece = board[attSq.square]
+                    if _checkLongAttackPieces[dirI].contains(attPiece) {
+                        // 長い利きが有効
+                        return true
+                    }
+                    if attPiece.isExist() {
+                        // 空白以外の駒があるなら利きが切れる
+                        break
+                    }
+                }
+            }
+        }
+        
+        // 桂馬の利きチェック
+        for x in [-1, 1] {
+            let attFile = bkFile + x
+            let attRank = bkRank - 2
+            guard let attSq = Square.fromFileRankIfValid(file: attFile, rank: attRank) else {
+                continue
+            }
+            
+            let attPiece = board[attSq.square]
+            if attPiece == Piece.W_KNIGHT {
+                // 桂馬がいる
+                return true
+            }
+        }
+        return false
+    }
+    
+    func inCheck() -> Bool {
+        if sideToMove == PColor.BLACK {
+            return _inCheckBlack()
+        } else {
+            rotatePositionInplace()
+            let ret = _inCheckBlack()
+            rotatePositionInplace()
+            return ret
+        }
+    }
+    
+    /*
+    逆の手番から見た盤面に変化させる。
+    盤面・持ち駒・手番を反転。
+    */
+    func rotatePositionInplace() {
+        // 盤面を180度回し、駒の色を入れ替える。
+        for sq in 0..<((Square.SQ_NB + 1) / 2) {
+            let invSq = Square.SQ_NB - 1 - sq
+            let sqItem = board[sq]
+            let invSqItem = board[invSq]
+            board[sq] = _rotatePieceTable[invSqItem.piece]
+            board[invSq] = _rotatePieceTable[sqItem.piece]
+        }
+        // 持ち駒を入れ替える。
+        let bh = hand[0]
+        let wh = hand[1]
+        hand[0] = wh
+        hand[1] = bh
+        
+        sideToMove = sideToMove.invert()
+    }
+    
+    func mateSearch() -> Move? {
+        let myMoveList = generateMoveList()
+        for move in myMoveList {
+            let undoInfo = doMove(move: move)
+            let mate = generateMoveList().count == 0
+            undoMove(undoMoveInfo: undoInfo)
+            if mate {
+                return move
+            }
+        }
+        return nil
+    }
+    
+    func setSFEN(sfen: String) {
+        let elems: [String.SubSequence] = sfen.split(separator: " ")
+        let boardStr = elems[0]
+        let colorStr = elems[1]
+        let handStr = elems[2]
+        let plyStr = elems[3]
+        for (rank, rankLine) in boardStr.split(separator: "/").enumerated() {
+            var fileFromLeft = 0
+            var isPromote = false
+            for token in rankLine {
+                if token == "+" {
+                    isPromote = true
+                    continue
+                }
+                if let tokenNum = token.wholeNumberValue {
+                    // 数値の指す数だけ空のマス
+                    for _ in 0..<tokenNum {
+                        let sq = Square.fromFileRank(file: 8 - fileFromLeft, rank: rank)
+                        board[sq.square] = Piece.PIECE_ZERO
+                        fileFromLeft += 1
+                    }
+                } else {
+                    // 駒
+                    var piece = Piece.fromPieceString(pieceString: String(token))!
+                    if isPromote {
+                        piece = Piece(piece.piece + Piece.PIECE_PROMOTE)
+                    }
+                    let sq = Square.fromFileRank(file: 8 - fileFromLeft, rank: rank)
+                    board[sq.square] = piece
+                    fileFromLeft += 1
+                }
+                isPromote = false
+            }
+        }
+        
+        hand = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+        if handStr != "-" {
+            var numPiece = 0
+            for token in handStr {
+                if let tokenNum = token.wholeNumberValue {
+                    // 駒の数が10以上のときがあるので注意
+                    numPiece = numPiece * 10 + tokenNum
+                } else {
+                    let piece = Piece.fromPieceString(pieceString: String(token))!
+                    let pieceColor = piece.isColor(color: PColor.BLACK) ? PColor.BLACK : PColor.WHITE
+                    numPiece = numPiece == 0 ? 1 : numPiece
+                    hand[pieceColor.color][piece.piece % Piece.PIECE_RAW_NB - Piece.PIECE_HAND_ZERO] = numPiece
+                    numPiece = 0
+                }
+            }
+        }
+        
+        sideToMove = colorStr == "w" ? PColor.WHITE : PColor.BLACK
+        gamePly = Int(plyStr)!
+    }
+    
+    func getSFEN() -> String {
+        // 盤面
+        // SFENは段ごとに、左から右に走査する
+        var sfen = ""
+        for y in 0..<9 {
+            if y > 0 {
+                sfen += "/"
+            }
+            var blankLen = 0
+            for x in 0..<9 {
+                let sq = (8 - x) * 9 + y
+                let piece = board[sq]
+                if piece.isExist() {
+                    if blankLen > 0 {
+                        sfen += String(blankLen)
+                        blankLen = 0
+                    }
+                    sfen += piece.toPieceString()!
+                } else {
+                    blankLen += 1
+                }
+            }
+            if blankLen > 0 {
+                sfen += String(blankLen)
+            }
+        }
+        
+        // 手番
+        if sideToMove == PColor.BLACK {
+            sfen += " b "
+        } else {
+            sfen += " w "
+        }
+        
+        // 持ち駒
+        // 同じ局面・手数の時にSFENを完全一致させるため、飛、角、金、銀、桂、香、歩の順とする
+        var handPieces = ""
+        for color in [PColor.BLACK, PColor.WHITE] {
+            let handForColor = hand[color.color]
+            let pieceColorOffset = color.color * Piece.PIECE_WHITE
+            for pt in [Piece.ROOK, Piece.BISHOP, Piece.GOLD, Piece.SILVER, Piece.KNIGHT, Piece.LANCE, Piece.PAWN] {
+                let pieceCt = handForColor[pt - Piece.PIECE_HAND_ZERO]
+                if pieceCt > 0 {
+                    if pieceCt > 1 {
+                        handPieces += String(pieceCt)
+                    }
+                    handPieces += Piece(pt + pieceColorOffset).toPieceString()!
+                }
+            }
+        }
+        if handPieces.isEmpty {
+            handPieces = "-"
+        }
+        sfen += handPieces
+        
+        // 手数
+        sfen += " " + String(gamePly)
+        return sfen
+    }
+    
+    /**
+     USIの"position"コマンドの引数に従って局面をセットする。
+        positionArg: "startpos moves 7g7f ..."
+     */
+    func setUSIPosition(positionArg: String) {
+        var items: [String.SubSequence] = positionArg.split(separator: " ")
+        if items[0] == "position" {
+            items.removeFirst()
+        }
+        if items[0] == "startpos" {
+            items.removeFirst()
+            self.setHirate()
+        } else if items[0] == "sfen" {
+            // position sfen lnsg... b - 3 moves 7g7f ...
+            fatalError("setposition with sfen not yet implemented")
+        } else {
+            fatalError("unexpected syntax")
+        }
+        if items.count > 0 { //将棋所で初形だと"position startpos"で終わり
+            if (items.removeFirst() != "moves") {
+                fatalError("keyword moves expected")
+            }
+            for moveStr in items {
+                guard let move = Move.fromUSIString(moveUSI: String(moveStr)) else {
+                    fatalError("move \(moveStr) cannot be parsed")
+                }
+                _ = doMove(move: move)
+            }
+        }
+    }
+    
+    func getDNNInput() -> [Float32] {
+        fatalError("not imp")
+    }
+    
+    func getDNNMoveIndex(move: Move) -> [Float32] {
+        fatalError("not imp")
+    }
+}
