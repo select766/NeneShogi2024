@@ -24,6 +24,11 @@ struct Piece: Equatable {
         return self.piece / Piece.PIECE_WHITE == color.color
     }
     
+    // 駒の色を取得する。駒がない場合はBLACKが返る
+    func getColor() -> PColor {
+        return self.piece >= Piece.PIECE_WHITE ? PColor.WHITE : PColor.BLACK
+    }
+    
     // 駒が存在するかどうか(空のマスでないか)を判定する
     func isExist() -> Bool {
         return self.piece != Piece.PIECE_ZERO.piece

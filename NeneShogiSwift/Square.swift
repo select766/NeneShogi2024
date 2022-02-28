@@ -32,4 +32,8 @@ struct Square: Equatable {
             return square % 9
         }
     }
+
+    func rotate() -> Square {
+        return Square(80 - square)
+    }
 }

@@ -63,6 +63,45 @@ struct ContentView: View {
         }
     }
     
+    func testDNNInput() {
+        DispatchQueue.global(qos: .background).async {
+            //let position = Position()
+            //var failed = false
+            // テストケース1024件を読むのに5分ほどかかってしまうが仕方ない(release build)
+            print("loading")
+            var failed = false
+            let dnnInputTestCase = loadDNNInputTestCases()
+            print(dnnInputTestCase[0].moveUSI)
+            for (i, tc) in dnnInputTestCase.enumerated() {
+                let position = Position()
+                position.setSFEN(sfen: tc.sfen)
+                let dnnInput = position.getDNNInput()
+                for j in 0..<tc.x.count {
+                    if dnnInput[j] != Float(tc.x[j]) {
+                        print("case \(i) input[\(j)]: \(dnnInput[j]) != \(tc.x[j]) sfen=\(tc.sfen)")
+                        print(position.hand)
+                        failed = true
+                        break
+                    }
+                }
+                
+                let moveLabel = position.getDNNMoveLabel(move: Move.fromUSIString(moveUSI: tc.moveUSI)!)
+                if moveLabel != tc.moveLabel {
+                    print("case \(i) move: \(moveLabel) != \(tc.moveLabel) sfen=\(tc.sfen) move=\(tc.moveUSI)")
+                    failed = true
+                }
+                
+                if failed {
+                    break
+                }
+            }
+            
+            DispatchQueue.main.async {
+                self.testProgress = failed ? "failed " : "completed"
+            }
+        }
+    }
+
     var body: some View {
         VStack {
             Text(latestMessage)
@@ -72,6 +111,9 @@ struct ContentView: View {
             }.padding()
             Button(action: testPosition) {
                 Text("Test position")
+            }.padding()
+            Button(action: testDNNInput) {
+                Text("Test dnn input")
             }.padding()
             Text(testProgress)
                 .padding()
