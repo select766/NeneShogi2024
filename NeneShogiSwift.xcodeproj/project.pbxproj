@@ -17,6 +17,7 @@
 		AA90C4F427B8BEDD00ED174E /* NeneShogiSwiftUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4F327B8BEDD00ED174E /* NeneShogiSwiftUITests.swift */; };
 		AA90C4F627B8BEDD00ED174E /* NeneShogiSwiftUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4F527B8BEDD00ED174E /* NeneShogiSwiftUITestsLaunchTests.swift */; };
 		AA995E6427CA14B800D1B5C2 /* PositionTestCase.txt in Resources */ = {isa = PBXBuildFile; fileRef = AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */; };
+		AA995E6727CB1DE800D1B5C2 /* DNNInputTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA995E6627CB1DE700D1B5C2 /* DNNInputTestCase.swift */; };
 		AA9C013327C1C5DE00BB71E0 /* Move.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013227C1C5DE00BB71E0 /* Move.swift */; };
 		AA9C013527C1C88600BB71E0 /* Square.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013427C1C88600BB71E0 /* Square.swift */; };
 		AA9C013727C1CCB800BB71E0 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013627C1CCB800BB71E0 /* Color.swift */; };
@@ -24,6 +25,7 @@
 		AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */; };
 		AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013C27C1D6BA00BB71E0 /* Position.swift */; };
 		AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */; };
+		AAFFE6EA27CB24240044CA38 /* DNNInputTestCase.txt in Resources */ = {isa = PBXBuildFile; fileRef = AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +60,7 @@
 		AA90C4F527B8BEDD00ED174E /* NeneShogiSwiftUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeneShogiSwiftUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PositionTestCase.txt; sourceTree = "<group>"; };
 		AA995E6527CA1A0700D1B5C2 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		AA995E6627CB1DE700D1B5C2 /* DNNInputTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNNInputTestCase.swift; sourceTree = "<group>"; };
 		AA9C013227C1C5DE00BB71E0 /* Move.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Move.swift; sourceTree = "<group>"; };
 		AA9C013427C1C88600BB71E0 /* Square.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Square.swift; sourceTree = "<group>"; };
 		AA9C013627C1CCB800BB71E0 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
@@ -65,6 +68,7 @@
 		AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoMoveInfo.swift; sourceTree = "<group>"; };
 		AA9C013C27C1D6BA00BB71E0 /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionTestCase.swift; sourceTree = "<group>"; };
+		AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DNNInputTestCase.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +134,8 @@
 				AA9C013427C1C88600BB71E0 /* Square.swift */,
 				AA9C013627C1CCB800BB71E0 /* Color.swift */,
 				AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */,
+				AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */,
+				AA995E6627CB1DE700D1B5C2 /* DNNInputTestCase.swift */,
 			);
 			path = NeneShogiSwift;
 			sourceTree = "<group>";
@@ -265,6 +271,7 @@
 			files = (
 				AA90C4E027B8BEDD00ED174E /* Preview Assets.xcassets in Resources */,
 				AA90C4DD27B8BEDD00ED174E /* Assets.xcassets in Resources */,
+				AAFFE6EA27CB24240044CA38 /* DNNInputTestCase.txt in Resources */,
 				AA995E6427CA14B800D1B5C2 /* PositionTestCase.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -291,6 +298,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA9C013527C1C88600BB71E0 /* Square.swift in Sources */,
+				AA995E6727CB1DE800D1B5C2 /* DNNInputTestCase.swift in Sources */,
 				AA9C013327C1C5DE00BB71E0 /* Move.swift in Sources */,
 				AA9C013727C1CCB800BB71E0 /* Color.swift in Sources */,
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,

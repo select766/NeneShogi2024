@@ -60,6 +60,22 @@ let _shortAttackTable = [
     [ [ -1,-1 ],[ 0,-1 ],[ 1,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//成銀
     [ [ 0,-1 ],[ -1,0 ],[ 1,0 ],[ 0,1 ] ],//馬
     [ [ -1,-1 ],[ 1,-1 ],[ -1,1 ],[ 1,1 ] ],//竜
+    [],
+    [],
+    [ [ 0, 1 ] ], // 後手歩
+    [], // 香
+    [ [ -1, 2 ],[ 1, 2 ] ], // 桂
+    [ [ -1, 1 ],[ 0,1 ],[ 1,1 ],[ -1,-1 ],[ 1,-1 ] ],//銀
+    [],//角
+    [],//飛
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//金
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ -1,-1 ],[ 0,-1 ],[ 1,-1 ] ],//玉
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//と
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//成香
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//成桂
+    [ [ -1,1 ],[ 0,1 ],[ 1,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//成銀
+    [ [ 0,1 ],[ -1,0 ],[ 1,0 ],[ 0,-1 ] ],//馬
+    [ [ -1,1 ],[ 1,1 ],[ -1,-1 ],[ 1,-1 ] ],//竜
 ]
 
 let _maxNonPromoteRankTable = [
@@ -96,6 +112,22 @@ let _longAttackTable = [
     [],  // 成銀
     [ [ -1, -1 ],[ 1, -1 ],[ -1, 1 ],[ 1, 1 ] ],  // 馬
     [ [ 0, -1 ],[ -1, 0 ],[ 1, 0 ],[ 0, 1 ] ],  // 竜
+    [],
+    [],
+    [],  // 後手歩
+    [ [ 0, 1 ] ],  // 香
+    [],  // 桂
+    [],  // 銀
+    [ [ -1, 1 ],[ 1, 1 ],[ -1, -1 ],[ 1, -1 ] ],  // 角
+    [ [ 0, 1 ],[ -1, 0 ],[ 1, 0 ],[ 0, -1 ] ],  // 飛
+    [],  // 金
+    [],  // 玉
+    [],  // と
+    [],  // 成香
+    [],  // 成桂
+    [],  // 成銀
+    [ [ -1, 1 ],[ 1, 1 ],[ -1, -1 ],[ 1, -1 ] ],  // 馬
+    [ [ 0, 1 ],[ -1, 0 ],[ 1, 0 ],[ 0, -1 ] ],  // 竜
 ]
 
 let _maxDropRankTable = [0,1,1,2,0,0,0,0]
@@ -124,19 +156,19 @@ let _checkAttackDirs = [
 
 let _checkShortAttackPieces = [
     [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左上
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左上
     [ Piece.W_PAWN, Piece.W_LANCE, Piece.W_SILVER, Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN,
-    Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 上
+      Piece.W_PRO_LANCE,
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 上
     [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右上
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右上
     [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 左
     [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 右
     [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_KING, Piece.W_HORSE, Piece.W_DRAGON ],  // 左下
     [ Piece.W_ROOK, Piece.W_GOLD, Piece.W_KING, Piece.W_PRO_PAWN, Piece.W_PRO_LANCE,
-    Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 下
+      Piece.W_PRO_KNIGHT, Piece.W_PRO_SILVER, Piece.W_HORSE, Piece.W_DRAGON ],  // 下
     [ Piece.W_SILVER, Piece.W_BISHOP, Piece.W_KING, Piece.W_HORSE, Piece.W_DRAGON ],  // 右下
 ]
 
@@ -250,10 +282,10 @@ class Position {
     }
     
     /*
-    盤上の駒を動かす手をすべて生成する。
-    先手番を前提とする。
-    ただし、香車の2段目・歩・角・飛の不成りおよび行き場のない駒を生じる手は除く。
-    */
+     盤上の駒を動かす手をすべて生成する。
+     先手番を前提とする。
+     ただし、香車の2段目・歩・角・飛の不成りおよび行き場のない駒を生じる手は除く。
+     */
     func _generateMoveMove() -> [Move] {
         var moveList: [Move] = []
         for fromFile in 0..<9 {
@@ -288,7 +320,7 @@ class Position {
                         moveList.append(Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: true))
                     }
                 }
-
+                
                 //長い利きの処理
                 for longAttack in _longAttackTable[fromPiece.piece] {
                     let x = longAttack[0]
@@ -389,7 +421,7 @@ class Position {
             return moveList
         }
     }
-
+    
     func _generateMoveListBlack() -> [Move] {
         let possibleList = _generateMoveMove() + _generateMoveDrop()
         var legalList: [Move] = []
@@ -404,10 +436,10 @@ class Position {
             // 打ち歩詰めチェック
             if legal && m.isDrop && m.moveDroppedPiece == Piece.PAWN {
                 /*
-                王手放置のときにチェックすると、玉を取る手が生成されてバグる
-                現在の手番(後手)が詰んでいるとき、打ち歩詰め
-                玉の頭に打った時だけ判定すればよい
-                */
+                 王手放置のときにチェックすると、玉を取る手が生成されてバグる
+                 現在の手番(後手)が詰んでいるとき、打ち歩詰め
+                 玉の頭に打った時だけ判定すればよい
+                 */
                 let whiteKingCheckPos = m.moveTo.square - 1 // 1段目に打つ手は生成しないので、必ず盤内
                 if board[whiteKingCheckPos] == Piece.W_KING {
                     if generateMoveList().isEmpty {
@@ -425,16 +457,16 @@ class Position {
     }
     
     /*
-    先手が王手された状態かどうかをチェックする。
-    先手が指して、後手番状態で呼び出すことも可能。この場合、王手放置のチェックとなる。
-    */
+     先手が王手された状態かどうかをチェックする。
+     先手が指して、後手番状態で呼び出すことも可能。この場合、王手放置のチェックとなる。
+     */
     func _inCheckBlack() -> Bool {
         /*
-        先手玉からみて各方向に後手の駒があれば、王手されていることになる。
-        例えば、先手玉の1つ上(y-方向)に後手歩があれば王手。
-        先手玉の右下に、他の駒に遮られずに角があれば王手。
-        長い利きの場合、途中のマスがすべて空でなければならない。
-        */
+         先手玉からみて各方向に後手の駒があれば、王手されていることになる。
+         例えば、先手玉の1つ上(y-方向)に後手歩があれば王手。
+         先手玉の右下に、他の駒に遮られずに角があれば王手。
+         長い利きの場合、途中のマスがすべて空でなければならない。
+         */
         var bkSq = Square(0) // black kingの位置
         for sq in 0..<Square.SQ_NB {
             if board[sq] == Piece.B_KING {
@@ -442,7 +474,7 @@ class Position {
                 break
             }
         }
-
+        
         let bkFile = bkSq.file
         let bkRank = bkSq.rank
         for dirI in 0..<_checkAttackDirs.count {
@@ -512,9 +544,9 @@ class Position {
     }
     
     /*
-    逆の手番から見た盤面に変化させる。
-    盤面・持ち駒・手番を反転。
-    */
+     逆の手番から見た盤面に変化させる。
+     盤面・持ち駒・手番を反転。
+     */
     func rotatePositionInplace() {
         // 盤面を180度回し、駒の色を入れ替える。
         for sq in 0..<((Square.SQ_NB + 1) / 2) {
@@ -664,7 +696,7 @@ class Position {
     
     /**
      USIの"position"コマンドの引数に従って局面をセットする。
-        positionArg: "startpos moves 7g7f ..."
+     positionArg: "startpos moves 7g7f ..."
      */
     func setUSIPosition(positionArg: String) {
         var items: [String.SubSequence] = positionArg.split(separator: " ")
@@ -694,10 +726,182 @@ class Position {
     }
     
     func getDNNInput() -> [Float32] {
-        fatalError("not imp")
+        var inv = false
+        if sideToMove == PColor.WHITE {
+            rotatePositionInplace()
+            inv = true
+        }
+        var input = Array.init(repeating: Float(0.0), count: 119*9*9)
+        var check = false
+        for fromFile in 0..<9 {
+            for fromRank in 0..<9 {
+                let fromSq = Square.fromFileRank(file: fromFile, rank: fromRank)
+                let fromPiece = board[fromSq.square]
+                if !fromPiece.isExist() {
+                    continue
+                }
+                let color = fromPiece.getColor()
+                if color == PColor.BLACK {
+                    input[(fromPiece.piece - 1) * 81 + fromSq.square] = 1.0
+                } else {
+                    input[(fromPiece.piece - 17 + 31) * 81 + fromSq.square] = 1.0
+                }
+                // 短い利きの処理
+                for shortAttack in _shortAttackTable[fromPiece.piece] {
+                    let x = shortAttack[0]
+                    let y = shortAttack[1]
+                    let toFile = fromFile + x
+                    let toRank = fromRank + y
+                    guard let toSq = Square.fromFileRankIfValid(file: toFile, rank: toRank) else {
+                        continue
+                    }
+                    let toPiece = board[toSq.square]
+                    // toSqに利きがある
+                    if color == PColor.BLACK {
+                        input[(fromPiece.piece - 1 + 14) * 81 + toSq.square] = 1.0
+                    } else {
+                        input[(fromPiece.piece - 17 + 31 + 14) * 81 + toSq.square] = 1.0
+                        if toPiece == Piece.B_KING {
+                            check = true
+                        }
+                    }
+                    // 利き数加算
+                    if color == PColor.BLACK {
+                        // ch28〜30を利き数に応じて1にする
+                        input[(28 + 2) * 81 + toSq.square] = input[(28 + 1) * 81 + toSq.square]
+                        input[(28 + 1) * 81 + toSq.square] = input[(28 + 0) * 81 + toSq.square]
+                        input[(28 + 0) * 81 + toSq.square] = 1.0
+                    } else {
+                        input[(59 + 2) * 81 + toSq.square] = input[(59 + 1) * 81 + toSq.square]
+                        input[(59 + 1) * 81 + toSq.square] = input[(59 + 0) * 81 + toSq.square]
+                        input[(59 + 0) * 81 + toSq.square] = 1.0
+                    }
+                }
+                
+                //長い利きの処理
+                for longAttack in _longAttackTable[fromPiece.piece] {
+                    let x = longAttack[0]
+                    let y = longAttack[1]
+                    var toFile = fromFile
+                    var toRank = fromRank
+                    while true {
+                        toFile += x
+                        toRank += y
+                        guard let toSq = Square.fromFileRankIfValid(file: toFile, rank: toRank) else {
+                            break
+                        }
+                        let toPiece = board[toSq.square]
+                        // toSqに利きがある
+                        if color == PColor.BLACK {
+                            input[(fromPiece.piece - 1 + 14) * 81 + toSq.square] = 1.0
+                        } else {
+                            input[(fromPiece.piece - 17 + 31 + 14) * 81 + toSq.square] = 1.0
+                            if toPiece == Piece.B_KING {
+                                check = true
+                            }
+                        }
+                        // 利き数加算
+                        if color == PColor.BLACK {
+                            // ch28〜30を利き数に応じて1にする
+                            input[(28 + 2) * 81 + toSq.square] = input[(28 + 1) * 81 + toSq.square]
+                            input[(28 + 1) * 81 + toSq.square] = input[(28 + 0) * 81 + toSq.square]
+                            input[(28 + 0) * 81 + toSq.square] = 1.0
+                        } else {
+                            input[(59 + 2) * 81 + toSq.square] = input[(59 + 1) * 81 + toSq.square]
+                            input[(59 + 1) * 81 + toSq.square] = input[(59 + 0) * 81 + toSq.square]
+                            input[(59 + 0) * 81 + toSq.square] = 1.0
+                        }
+                        if toPiece.isExist() {
+                            // 駒があるので、これ以上進めない
+                            break
+                        }
+                    }
+                }
+            }
+        }
+        
+        var fillChs: [Int] = []
+        
+        for i in 0..<2 {
+            for (p, ch) in [(Piece.PAWN, 0), (Piece.LANCE, 8), (Piece.KNIGHT, 12), (Piece.SILVER, 16), (Piece.GOLD, 20), (Piece.BISHOP, 24), (Piece.ROOK, 26)] {
+                var num = hand[i][p-Piece.PIECE_HAND_ZERO]
+                if num > 8 {
+                    num = 8
+                }
+                for n in 0..<num {
+                    fillChs.append(62 + i * 28 + ch + n)
+                }
+            }
+        }
+        
+        if check {
+            fillChs.append(118)
+        }
+        
+        for ch in fillChs {
+            for i in (ch*81)..<((ch+1)*81) {
+                input[i] = 1.0
+            }
+        }
+        
+        if inv {
+            rotatePositionInplace()
+        }
+        return input
     }
     
-    func getDNNMoveIndex(move: Move) -> [Float32] {
-        fatalError("not imp")
+    func getDNNMoveLabel(move: Move) -> Int {
+        var moveTo = move.moveTo
+        if sideToMove == PColor.WHITE {
+            moveTo = moveTo.rotate()
+        }
+        
+        if move.isDrop {
+            return (move.moveDroppedPiece - Piece.PAWN + 20) * 81 + moveTo.square
+        } else {
+            var moveFrom = move.moveFrom
+            if sideToMove == PColor.WHITE {
+                moveFrom = moveFrom.rotate()
+            }
+            
+            let dirX = moveFrom.file - moveTo.file
+            let dirY = moveTo.rank - moveFrom.rank
+            var ch: Int
+            if (dirX == -1 && dirY == -2) {
+                ch = 8
+            }
+            else if (dirX == 1 && dirY == -2) {
+                ch = 9
+            } else if (dirX < 0) {
+                if (dirY < 0) {
+                    ch = 1
+                } else if (dirY == 0) {
+                    ch = 3
+                } else {
+                    ch = 6
+                }
+            } else if (dirX == 0) {
+                if (dirY < 0) {
+                    ch = 0
+                } else {
+                    ch = 5
+                }
+            } else {
+                // fild_diff > 0
+                if (dirY < 0) {
+                    ch = 2
+                } else if (dirY == 0) {
+                    ch = 4
+                } else {
+                    ch = 7
+                }
+            }
+
+            if move.isPromote {
+                ch += 10
+            }
+
+            return ch * 81 + moveTo.square
+        }
     }
 }
