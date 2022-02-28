@@ -26,6 +26,7 @@
 		AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013C27C1D6BA00BB71E0 /* Position.swift */; };
 		AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */; };
 		AAFFE6EA27CB24240044CA38 /* DNNInputTestCase.txt in Resources */ = {isa = PBXBuildFile; fileRef = AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */; };
+		AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		AA9C013C27C1D6BA00BB71E0 /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionTestCase.swift; sourceTree = "<group>"; };
 		AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DNNInputTestCase.txt; sourceTree = "<group>"; };
+		AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet10SwishBatch.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +133,7 @@
 				AA9C013827C1CF8E00BB71E0 /* Piece.swift */,
 				AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */,
 				AA9C013C27C1D6BA00BB71E0 /* Position.swift */,
+				AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */,
 				AA9C013427C1C88600BB71E0 /* Square.swift */,
 				AA9C013627C1CCB800BB71E0 /* Color.swift */,
 				AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */,
@@ -305,6 +308,7 @@
 				AA9C013927C1CF8E00BB71E0 /* Piece.swift in Sources */,
 				AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */,
 				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
+				AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
 				AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */,
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,

@@ -209,7 +209,7 @@ class Position {
             // 駒打ち
             // 持ち駒を減らす
             let ptHand = move.moveDroppedPiece - Piece.PIECE_HAND_ZERO
-            handType = sideToMove.color * 7 + ptHand
+            handType = ptHand
             lastHandValue = hand[sideToMove.color][ptHand]
             hand[sideToMove.color][ptHand] = lastHandValue - 1
             var piece = move.moveDroppedPiece
@@ -233,7 +233,7 @@ class Position {
                 // 駒種に変換
                 let pt = capturedPiece.piece % Piece.PIECE_RAW_NB
                 let ptHand = pt - Piece.PIECE_HAND_ZERO
-                handType = sideToMove.color * 7 + ptHand
+                handType = ptHand
                 lastHandValue = hand[sideToMove.color][ptHand]
                 hand[sideToMove.color][ptHand] = lastHandValue + 1
             } else {
@@ -257,7 +257,7 @@ class Position {
     func undoMove(undoMoveInfo: UndoMoveInfo) {
         gamePly -= 1
         sideToMove = sideToMove.invert()
-        hand[sideToMove.color][undoMoveInfo.handType] = undoMoveInfo.handType
+        hand[sideToMove.color][undoMoveInfo.handType] = undoMoveInfo.handValue
         board[undoMoveInfo.fromSq.square] = undoMoveInfo.fromValue
         board[undoMoveInfo.toSq.square] = undoMoveInfo.toValue
     }
