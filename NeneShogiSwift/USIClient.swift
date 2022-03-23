@@ -1,14 +1,8 @@
-//
-//  USIClient.swift
-//  NeneShogiSwift
-//
-//  Created by Masatoshi Hidaka on 2022/02/14.
-//
-
 import Foundation
 import Network
-import CoreML
 
+// AI種類選択
+var playerClass = "Policy"
 
 class USIClient {
     let matchManager: MatchManager
@@ -16,15 +10,10 @@ class USIClient {
     var connection: NWConnection?
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
-    var position: Position // 暫定的にUSIClientが対局を管理している
-    let model: DlShogiResnet10SwishBatch // 暫定的にUSIClientがモデルを管理している
+    var player: PlayerProtocol?
     init(matchManager: MatchManager) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "usiClient")
-        self.position = Position()
-        let config = MLModelConfiguration()
-        config.computeUnits = .all//デバイス指定(all/cpuAndGPU/cpuOnly)
-        model = try! DlShogiResnet10SwishBatch(configuration: config)
     }
     
     func start() {
@@ -83,69 +72,6 @@ class USIClient {
         })
     }
     
-    func goRandom() -> String {
-        let moves = position.generateMoveList()
-        let bestMove: String
-        if moves.count > 0 {
-            let rnd = Int.random(in: 0..<moves.count)
-            bestMove = moves[rnd].toUSIString()
-        } else {
-            bestMove = "resign"
-        }
-        return bestMove
-    }
-    
-    func goPolicy() -> String {
-        print(position.getSFEN())
-        let moves = position.generateMoveList()
-        let inputArray = position.getDNNInput()
-        if moves.count == 0 {
-            return "resign"
-        }
-        guard let mmArray = try? MLMultiArray(shape: [1, 119, 9, 9], dataType: .float32) else {
-            fatalError("Cannot allocate MLMultiArray")
-        }
-        let mmRawPtr = UnsafeMutablePointer<Float>(OpaquePointer(mmArray.dataPointer))
-        for i in 0..<inputArray.count {
-            mmRawPtr[i] = Float(inputArray[i])
-        }
-        let pred = try! model.prediction(x: mmArray)
-        let moveArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.move.dataPointer))
-        var bestMove = "resign"
-        var bestScore = Float(-100.0)
-        for move in moves {
-            let moveLabel = position.getDNNMoveLabel(move: move)
-            let score = moveArray[moveLabel]
-            if score >= bestScore {
-                bestScore = score
-                bestMove = move.toUSIString()
-            }
-        }
-        let resultArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.result.dataPointer))
-        let winrate = resultArray[0]
-        let cp = logf(winrate / (1.0 - winrate)) * 600.0
-        // 極端な値をInt()でキャストすると例外発生
-        let cpInt: Int32
-        if cp.isNaN {
-            if winrate > 0.5 {
-                cpInt = 30000
-            } else {
-                cpInt = -30000
-            }
-        } else {
-            if cp > 30000.0 {
-                cpInt = 30000
-            } else if cp < -30000.0 {
-                cpInt = 30000
-            } else {
-                cpInt = Int32(cp)
-            }
-        }
-        sendUSI(message: "info depth 1 score cp \(cpInt) pv \(bestMove)")
-        
-        return bestMove
-    }
-    
     func handleUSICommand(command: String) {
         self.matchManager.displayMessage("USI recv: '\(command)'")
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
@@ -156,21 +82,35 @@ class USIClient {
         let commandArg = splits.count == 2 ? String(splits[1]) : nil
         switch commandType {
         case "usi":
-            // TODO: add "option"
+            switch playerClass {
+            case "Random":
+                self.player = RandomPlayer()
+            case "Policy":
+                self.player = PolicyPlayer()
+            case "MCTS":
+                self.player = MCTSPlayer()
+            default:
+                fatalError("Unknown player selection")
+            }
             sendUSI(messages: ["id name NeneShogiSwift", "id author select766", "usiok"])
         case "isready":
+            self.player?.isReady()
             sendUSI(message: "readyok")
         case "setoption":
             break
         case "usinewgame":
+            self.player?.usiNewGame()
             break
         case "position":
             if let commandArg = commandArg {
-                position.setUSIPosition(positionArg: commandArg)
+                self.player?.position(positionArg: commandArg)
             }
             break
         case "go":
-            let bestMove = goPolicy()
+            guard let player = self.player else {
+                fatalError()
+            }
+            let bestMove = player.go(info: {(message: String) in sendUSI(message: message)})
             sendUSI(message: "bestmove \(bestMove)")
         case "gameover":
             break
@@ -188,8 +128,6 @@ class USIClient {
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {
                 print("Error in send", error)
-            } else {
-                print("send ok")
             }
         })
         
