@@ -10,10 +10,12 @@ class UCTNode {
     var childNodes: [UCTNode?]?
     var policy: [Float]?
     var value: Float?
+    var terminal: Bool
     
     init() {
         moveCount = 0
         sumValue = 0.0
+        terminal = false
     }
     
     func createChildNode(index: Int) -> UCTNode {

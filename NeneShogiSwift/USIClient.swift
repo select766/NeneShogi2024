@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 // AI種類選択
-var playerClass = "Policy"
+var playerClass = "MCTS"
 
 class USIClient {
     let matchManager: MatchManager
