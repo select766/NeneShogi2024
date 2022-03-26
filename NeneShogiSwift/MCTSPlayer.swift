@@ -64,7 +64,9 @@ class MCTSPlayer: NNPlayerBase {
                 mmRawPtr[mmOfs+j] = inputArray[j]
             }
         }
+        let lastsec = searchBenchDefault.startSection(id: .dnnEval)
         let pred = try! model!.prediction(x: mmArray)
+        searchBenchDefault.startSection(id: lastsec)
         let resultArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.result.dataPointer))
         let moveArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.move.dataPointer))
         var results: [(Float, [Float])] = []
@@ -110,7 +112,10 @@ class MCTSPlayer: NNPlayerBase {
             return rootNode.childMoves![0].toUSIString()
         }
         evaluateRootNode(position: position, node: rootNode)
+        searchBenchDefault.startSection(id: .search)
         search(rootNode: rootNode)
+        searchBenchDefault.startSection(id: .empty)
+        searchBenchDefault.display()
         
         // 最大訪問数の子ノードを選択
         var bestVisit: Int32 = 0
@@ -134,7 +139,7 @@ class MCTSPlayer: NNPlayerBase {
     
     func search(rootNode: UCTNode) {
         // 一定の回数探索を行なって木を成長させる
-        for iter in 0..<10 {
+        for iter in 0..<100 {
             print("iter \(iter)")
             var queueItems: [([(UCTNode, Int)], UCTNode, [Float], [Int])] = []
             var fixedItems: [([(UCTNode, Int)], Float)] = []
