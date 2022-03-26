@@ -1,10 +1,12 @@
 import SwiftUI
 
+let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
+
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
     @State var testProgress: String = ""
-    @State var usiServerIpAddress: String = "127.0.0.1"
+    @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
     
     func start() {
         if matchManager != nil {
@@ -15,6 +17,7 @@ struct ContentView: View {
         }
             
         })
+        UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
         matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress)
         matchManager?.start()
     }
