@@ -1,16 +1,10 @@
-//
-//  ContentView.swift
-//  NeneShogiSwift
-//
-//  Created by Masatoshi Hidaka on 2022/02/13.
-//
-
 import SwiftUI
 
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
     @State var testProgress: String = ""
+    @State var usiServerIpAddress: String = "127.0.0.1"
     
     func start() {
         if matchManager != nil {
@@ -21,7 +15,7 @@ struct ContentView: View {
         }
             
         })
-        matchManager = MatchManager(shogiUIInterface: shogiUIInterface)
+        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress)
         matchManager?.start()
     }
     
@@ -109,6 +103,7 @@ struct ContentView: View {
             Button(action: start) {
                 Text("Start")
             }.padding()
+            TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 50.0).padding()
             Button(action: testPosition) {
                 Text("Test position")
             }.padding()

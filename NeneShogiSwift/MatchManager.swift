@@ -16,13 +16,15 @@ class ShogiUIInterface {
 
 class MatchManager {
     let shogiUIInterface: ShogiUIInterface
+    let usiServerIpAddress: String
     var usiClient: USIClient?
-    init(shogiUIInterface: ShogiUIInterface) {
+    init(shogiUIInterface: ShogiUIInterface, usiServerIpAddress: String) {
         self.shogiUIInterface = shogiUIInterface
+        self.usiServerIpAddress = usiServerIpAddress
     }
     
     func start() {
-        usiClient = USIClient(matchManager: self)
+        usiClient = USIClient(matchManager: self, usiServerIpAddress: usiServerIpAddress)
         usiClient?.start()
     }
     

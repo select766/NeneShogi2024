@@ -134,7 +134,7 @@ class MCTSPlayer: NNPlayerBase {
     
     func search(rootNode: UCTNode) {
         // 一定の回数探索を行なって木を成長させる
-        for iter in 0..<1 {
+        for iter in 0..<10 {
             print("iter \(iter)")
             var queueItems: [([(UCTNode, Int)], UCTNode, [Float], [Int])] = []
             var fixedItems: [([(UCTNode, Int)], Float)] = []

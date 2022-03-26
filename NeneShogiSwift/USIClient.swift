@@ -6,14 +6,15 @@ var playerClass = "MCTS"
 
 class USIClient {
     let matchManager: MatchManager
-    var serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host("localhost"), port: NWEndpoint.Port(8090))
+    var serverEndpoint: NWEndpoint
     var connection: NWConnection?
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
     var player: PlayerProtocol?
-    init(matchManager: MatchManager) {
+    init(matchManager: MatchManager, usiServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "usiClient")
+        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(usiServerIpAddress), port: NWEndpoint.Port(8090))
     }
     
     func start() {
