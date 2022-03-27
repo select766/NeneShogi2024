@@ -193,7 +193,11 @@ class MCTSPlayer: NNPlayerBase {
         let bestWinRate = rootNode.childSumValue![bestVisitIdx] / Float(rootNode.childMoveCount![bestVisitIdx])
         
         let cpInt = winRateToCp(winrate: bestWinRate)
-        info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
+        if thinkingTime.ponder {
+            info("info string ponder result = \(bestMove.toUSIString())")
+        } else {
+            info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
+        }
         
         if reuseRoot {
             // Swiftのリストは値型なのでmoveStackはコピーされる
