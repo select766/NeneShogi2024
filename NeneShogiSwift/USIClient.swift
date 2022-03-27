@@ -97,8 +97,11 @@ class USIClient {
             }
             sendUSI(messages: ["id name NeneShogiSwift", "id author select766", "usiok"])
         case "isready":
-            self.player?.isReady()
-            sendUSI(message: "readyok")
+            self.player?.isReady(callback: {
+                self.queue.async {
+                    self.sendUSI(message: "readyok")
+                }
+            })
         case "setoption":
             break
         case "usinewgame":
@@ -121,9 +124,16 @@ class USIClient {
                 // 便宜上秒読み10秒にしておく
                 thinkingTime = ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 10.0, fisher: 0.0)
             }
-            print(thinkingTime)
-            let bestMove = player.go(info: {(message: String) in sendUSI(message: message)}, thinkingTime: thinkingTime)
-            sendUSI(message: "bestmove \(bestMove)")
+            player.go(info: {(message: String) in
+                self.queue.async {
+                    self.sendUSI(message: message)
+                }
+            }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+                self.queue.async {
+                    self.sendUSI(message: "bestmove \(bestMove.toUSIString())")
+                    
+                }
+            })
         case "gameover":
             break
         case "quit":

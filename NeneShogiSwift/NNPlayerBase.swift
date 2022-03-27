@@ -4,15 +4,20 @@ import CoreML
 class NNPlayerBase: PlayerProtocol {
     var position: Position
     var model: DlShogiResnet10SwishBatch?
+    let searchDispatchQueue: DispatchQueue
     init() {
         position = Position()
+        searchDispatchQueue = DispatchQueue(label: "NNPlayerBase")
     }
     
-    func isReady() {
-        // モデルの準備
-        let config = MLModelConfiguration()
-        config.computeUnits = .all//デバイス指定(all/cpuAndGPU/cpuOnly)
-        model = try! DlShogiResnet10SwishBatch(configuration: config)
+    func isReady(callback: @escaping () -> Void) {
+        searchDispatchQueue.async {
+            // モデルの準備
+            let config = MLModelConfiguration()
+            config.computeUnits = .all//デバイス指定(all/cpuAndGPU/cpuOnly)
+            self.model = try! DlShogiResnet10SwishBatch(configuration: config)
+            callback()
+        }
     }
     
     func usiNewGame() {}
@@ -44,7 +49,7 @@ class NNPlayerBase: PlayerProtocol {
         return cpInt
     }
     
-    func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
+    func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         fatalError()
     }

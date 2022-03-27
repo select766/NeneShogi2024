@@ -2,7 +2,13 @@ import Foundation
 import CoreML
 
 class PolicyPlayer: NNPlayerBase {
-    override func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
+    override func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+        searchDispatchQueue.async {
+            self.goMain(info: info, thinkingTime: thinkingTime, callback: callback)
+        }
+    }
+    
+    func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         guard let model = self.model else {
             fatalError()
@@ -10,7 +16,7 @@ class PolicyPlayer: NNPlayerBase {
         let moves = position.generateMoveList()
         let inputArray = position.getDNNInput()
         if moves.count == 0 {
-            return "resign"
+            callback(Move.Resign)
         }
         guard let mmArray = try? MLMultiArray(shape: [1, 119, 9, 9], dataType: .float32) else {
             fatalError("Cannot allocate MLMultiArray")
@@ -21,21 +27,21 @@ class PolicyPlayer: NNPlayerBase {
         }
         let pred = try! model.prediction(x: mmArray)
         let moveArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.move.dataPointer))
-        var bestMove = "resign"
+        var bestMove = Move.Resign
         var bestScore = Float(-100.0)
         for move in moves {
             let moveLabel = position.getDNNMoveLabel(move: move)
             let score = moveArray[moveLabel]
             if score >= bestScore {
                 bestScore = score
-                bestMove = move.toUSIString()
+                bestMove = move
             }
         }
         let resultArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.result.dataPointer))
         let cpInt = winRateToCp(winrate: resultArray[0])
         
-        info("info depth 1 score cp \(cpInt) pv \(bestMove)")
+        info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
         
-        return bestMove
+        callback(bestMove)
     }
 }

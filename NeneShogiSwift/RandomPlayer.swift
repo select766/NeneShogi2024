@@ -6,7 +6,9 @@ class RandomPlayer: PlayerProtocol {
         position = Position()
     }
     
-    func isReady() {}
+    func isReady(callback: @escaping () -> Void) {
+        callback()
+    }
     
     func usiNewGame() {
     }
@@ -16,16 +18,16 @@ class RandomPlayer: PlayerProtocol {
         position.setUSIPosition(positionArg: positionArg)
     }
     
-    func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
+    func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         let moves = position.generateMoveList()
-        let bestMove: String
+        let bestMove: Move
         if moves.count > 0 {
             let rnd = Int.random(in: 0..<moves.count)
-            bestMove = moves[rnd].toUSIString()
+            bestMove = moves[rnd]
         } else {
-            bestMove = "resign"
+            bestMove = Move.Resign
         }
-        return bestMove
+        callback(bestMove)
     }
 }

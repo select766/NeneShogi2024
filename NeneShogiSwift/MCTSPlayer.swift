@@ -120,7 +120,14 @@ class MCTSPlayer: NNPlayerBase {
         }
     }
     
-    override func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
+    override func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+        searchDispatchQueue.async {
+            let bestMove = self.goMain(info: info, thinkingTime: thinkingTime)
+            callback(bestMove)
+        }
+    }
+    
+    func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime) -> Move {
         // 思考時間設定
         stop = false
         var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopフラグを操作しないようにするためのフラグ
@@ -140,10 +147,10 @@ class MCTSPlayer: NNPlayerBase {
         rootNode.expandNode(board: position)
         let childCount = rootNode.childMoves!.count
         if childCount == 0 {
-            return "resign"
+            return Move.Resign
         }
         if childCount == 1 {
-            return rootNode.childMoves![0].toUSIString()
+            return rootNode.childMoves![0]
         }
         evaluateRootNode(position: position, node: rootNode)
         
@@ -164,11 +171,11 @@ class MCTSPlayer: NNPlayerBase {
             }
             //            print("\(rootNode.childMoves![moveIdx].toUSIString()): \(visit)")
         }
-        let bestMove = rootNode.childMoves![bestVisitIdx].toUSIString()
+        let bestMove = rootNode.childMoves![bestVisitIdx]
         let bestWinRate = rootNode.childSumValue![bestVisitIdx] / Float(rootNode.childMoveCount![bestVisitIdx])
         
         let cpInt = winRateToCp(winrate: bestWinRate)
-        info("info depth 1 score cp \(cpInt) pv \(bestMove)")
+        info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
         
         return bestMove
     }

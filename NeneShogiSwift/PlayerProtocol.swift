@@ -6,8 +6,8 @@ struct ThinkingTime {
 }
 
 protocol PlayerProtocol {
-    func isReady()
+    func isReady(callback: @escaping () -> Void)
     func usiNewGame()
     func position(positionArg: String)
-    func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String
+    func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void)
 }
