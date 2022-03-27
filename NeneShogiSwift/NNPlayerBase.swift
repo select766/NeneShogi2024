@@ -44,7 +44,7 @@ class NNPlayerBase: PlayerProtocol {
         return cpInt
     }
     
-    func go(info: (String) -> Void) -> String {
+    func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
         // goコマンド
         fatalError()
     }

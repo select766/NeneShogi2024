@@ -4,6 +4,12 @@ import CoreML
 class MCTSPlayer: NNPlayerBase {
     var batchSize: Int = 16
     var cPuct: Float = 1.0
+    var stop = false
+    let timerQueue: DispatchQueue
+    
+    override init() {
+        timerQueue = DispatchQueue(label: "mctsPlayerTimer")
+    }
     
     enum UCTSearchResult {
         case Queued(leafNode: UCTNode, inputArray: [Float], moveLabels: [Int])
@@ -101,7 +107,35 @@ class MCTSPlayer: NNPlayerBase {
         return results
     }
     
-    override func go(info: (String) -> Void) -> String {
+    func calculateThinkingTime(thinkingTime: ThinkingTime) -> Double {
+        // 思考時間を決める
+        let defaultTime = 10.0 // ルール依存だが決めうち(WCSC32用)
+        let margin = 2.0 // stopを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
+        let minimum = 1.0
+        let maxAvailable = thinkingTime.remaining + thinkingTime.byoyomi + thinkingTime.fisher
+        if maxAvailable >= defaultTime {
+            return defaultTime
+        } else {
+            return max(maxAvailable - margin, minimum)
+        }
+    }
+    
+    override func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
+        // 思考時間設定
+        stop = false
+        var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopフラグを操作しないようにするためのフラグ
+        defer {
+            enableStop = false
+        }
+        let calculatedThinkingTime = calculateThinkingTime(thinkingTime: thinkingTime)
+        print("Thinking time: \(calculatedThinkingTime)")
+        timerQueue.asyncAfter(deadline: .now() + calculatedThinkingTime, execute: {
+            if enableStop {
+                self.stop = true
+            }
+        })
+
+        // ルートノードの作成
         let rootNode = UCTNode()
         rootNode.expandNode(board: position)
         let childCount = rootNode.childMoves!.count
@@ -112,6 +146,8 @@ class MCTSPlayer: NNPlayerBase {
             return rootNode.childMoves![0].toUSIString()
         }
         evaluateRootNode(position: position, node: rootNode)
+        
+        // MCTS
         searchBenchDefault.startSection(id: .search)
         search(rootNode: rootNode)
         searchBenchDefault.startSection(id: .empty)
@@ -139,7 +175,11 @@ class MCTSPlayer: NNPlayerBase {
     
     func search(rootNode: UCTNode) {
         // 一定の回数探索を行なって木を成長させる
-        for iter in 0..<100 {
+        for iter in 0..<1000 {
+            if stop {
+                print("break by stop")
+                break
+            }
             print("iter \(iter)")
             var queueItems: [([(UCTNode, Int)], UCTNode, [Float], [Int])] = []
             var fixedItems: [([(UCTNode, Int)], Float)] = []

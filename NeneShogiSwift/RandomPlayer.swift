@@ -16,7 +16,7 @@ class RandomPlayer: PlayerProtocol {
         position.setUSIPosition(positionArg: positionArg)
     }
     
-    func go(info: (String) -> Void) -> String {
+    func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
         // goコマンド
         let moves = position.generateMoveList()
         let bestMove: String

@@ -2,7 +2,7 @@ import Foundation
 import CoreML
 
 class PolicyPlayer: NNPlayerBase {
-    override func go(info: (String) -> Void) -> String {
+    override func go(info: (String) -> Void, thinkingTime: ThinkingTime) -> String {
         // goコマンド
         guard let model = self.model else {
             fatalError()

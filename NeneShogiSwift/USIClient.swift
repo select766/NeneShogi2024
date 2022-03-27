@@ -11,10 +11,12 @@ class USIClient {
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
     var player: PlayerProtocol?
+    var position: Position // 手番把握のためにAIとは別に必要
     init(matchManager: MatchManager, usiServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "usiClient")
         self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(usiServerIpAddress), port: NWEndpoint.Port(8090))
+        position = Position()
     }
     
     func start() {
@@ -104,6 +106,7 @@ class USIClient {
             break
         case "position":
             if let commandArg = commandArg {
+                position.setUSIPosition(positionArg: commandArg)
                 self.player?.position(positionArg: commandArg)
             }
             break
@@ -111,7 +114,15 @@ class USIClient {
             guard let player = self.player else {
                 fatalError()
             }
-            let bestMove = player.go(info: {(message: String) in sendUSI(message: message)})
+            let thinkingTime: ThinkingTime
+            if let commandArg = commandArg {
+                thinkingTime = parseThinkingTime(commandArg: commandArg)
+            } else {
+                // 便宜上秒読み10秒にしておく
+                thinkingTime = ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 10.0, fisher: 0.0)
+            }
+            print(thinkingTime)
+            let bestMove = player.go(info: {(message: String) in sendUSI(message: message)}, thinkingTime: thinkingTime)
             sendUSI(message: "bestmove \(bestMove)")
         case "gameover":
             break
@@ -123,6 +134,48 @@ class USIClient {
         default:
             print("Unknown command \(command)")
         }
+    }
+    
+    func parseThinkingTime(commandArg: String) -> ThinkingTime {
+        //　positionで指定された手番側の持ち時間を取得する
+        let sideToMove = position.sideToMove
+        let parts = commandArg.split(separator: " ", omittingEmptySubsequences: false)
+        var idx = 0
+        var remainingTime = 0.0
+        var byoyomi = 0.0
+        var fisher = 0.0
+        while idx < parts.count {
+            let key = parts[idx]
+            idx += 1
+            switch key {
+            case "btime":
+                if sideToMove == PColor.BLACK {
+                    remainingTime = (Double(parts[idx]) ?? 0.0)  / 1000.0
+                }
+                idx += 1
+            case "wtime":
+                if sideToMove == PColor.WHITE {
+                    remainingTime = (Double(parts[idx]) ?? 0.0)  / 1000.0
+                }
+                idx += 1
+            case "byoyomi":
+                byoyomi = (Double(parts[idx]) ?? 0.0) / 1000.0
+                idx += 1
+            case "binc":
+                if sideToMove == PColor.BLACK {
+                    fisher = (Double(parts[idx]) ?? 0.0)  / 1000.0
+                }
+                idx += 1
+            case "winc":
+                if sideToMove == PColor.WHITE {
+                    fisher = (Double(parts[idx]) ?? 0.0)  / 1000.0
+                }
+                idx += 1
+            default:
+                print("Warning: unsupported go argument \(key)")
+            }
+        }
+        return ThinkingTime(ponder: false, remaining: remainingTime, byoyomi: byoyomi, fisher: fisher)
     }
     
     func _send(messageWithNewline: String) {
