@@ -12,6 +12,8 @@ let hirateBoard: [Piece] = [
 
 let hirateHands: [[Int]] = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
 
+let hirateSFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+
 // 本当はZobrist hashとかのほうがよさそうだが簡単に使える実装でごまかす
 // https://ja.wikipedia.org/wiki/%E5%B7%A1%E5%9B%9E%E5%86%97%E9%95%B7%E6%A4%9C%E6%9F%BB
 let crcTable: [UInt32] = crcInitializer()
@@ -188,12 +190,24 @@ class Position {
     var hand: [[Int]]
     var sideToMove: PColor
     var gamePly: Int
+    var originSFEN: String
+    var hashHistory: [UInt64]
+    var checkHistory: [Bool]
+    var moveStack: [Move]
+    var undoStack: [UndoMoveInfo]
     
     init() {
         board = hirateBoard
         hand = hirateHands
         sideToMove = PColor.BLACK
         gamePly = 1
+        originSFEN = hirateSFEN
+        hashHistory = []
+        checkHistory = []
+        moveStack = []
+        undoStack = []
+        hashHistory.append(hash())
+        checkHistory.append(inCheck())
     }
     
     func setHirate() {
@@ -201,9 +215,14 @@ class Position {
         hand = hirateHands
         sideToMove = PColor.BLACK
         gamePly = 1
+        originSFEN = hirateSFEN
+        moveStack = []
+        undoStack = []
+        hashHistory.append(hash())
+        checkHistory.append(inCheck())
     }
     
-    func doMove(move: Move) -> UndoMoveInfo {
+    func doMove(move: Move) {
         var fromSq: Square, toSq: Square, handType: Int, lastFromValue: Piece, lastToValue: Piece, lastHandValue: Int
         if move.isDrop {
             // 駒打ち
@@ -251,15 +270,22 @@ class Position {
         
         sideToMove = sideToMove.invert()
         gamePly += 1
-        return UndoMoveInfo(fromSq: fromSq, fromValue: lastFromValue, toSq: toSq, toValue: lastToValue, handType: handType, handValue: lastHandValue)
+        moveStack.append(move)
+        undoStack.append(UndoMoveInfo(fromSq: fromSq, fromValue: lastFromValue, toSq: toSq, toValue: lastToValue, handType: handType, handValue: lastHandValue))
+        hashHistory.append(hash())
+        checkHistory.append(inCheck())
     }
     
-    func undoMove(undoMoveInfo: UndoMoveInfo) {
+    func undoMove() {
         gamePly -= 1
+        let undoMoveInfo = undoStack.popLast()!
+        _ = moveStack.popLast()
         sideToMove = sideToMove.invert()
         hand[sideToMove.color][undoMoveInfo.handType] = undoMoveInfo.handValue
         board[undoMoveInfo.fromSq.square] = undoMoveInfo.fromValue
         board[undoMoveInfo.toSq.square] = undoMoveInfo.toValue
+        _ = hashHistory.popLast()
+        _ = checkHistory.popLast()
     }
     
     func hash() -> UInt64 {
@@ -427,7 +453,7 @@ class Position {
         var legalList: [Move] = []
         for m in possibleList {
             var legal = true
-            let undoInfo = doMove(move: m)
+            doMove(move: m)
             // 王手放置チェック
             if (_inCheckBlack()) {
                 // 後手番になっているのに先手が王手をかけられている
@@ -447,7 +473,7 @@ class Position {
                     }
                 }
             }
-            undoMove(undoMoveInfo: undoInfo)
+            undoMove()
             if legal {
                 legalList.append(m)
             }
@@ -568,9 +594,9 @@ class Position {
     func mateSearch() -> Move? {
         let myMoveList = generateMoveList()
         for move in myMoveList {
-            let undoInfo = doMove(move: move)
+            doMove(move: move)
             let mate = generateMoveList().count == 0
-            undoMove(undoMoveInfo: undoInfo)
+            undoMove()
             if mate {
                 return move
             }
@@ -632,6 +658,12 @@ class Position {
         
         sideToMove = colorStr == "w" ? PColor.WHITE : PColor.BLACK
         gamePly = Int(plyStr)!
+        
+        originSFEN = sfen
+        moveStack = []
+        undoStack = []
+        hashHistory.append(hash())
+        checkHistory.append(inCheck())
     }
     
     func getSFEN() -> String {
@@ -720,7 +752,7 @@ class Position {
                 guard let move = Move.fromUSIString(moveUSI: String(moveStr)) else {
                     fatalError("move \(moveStr) cannot be parsed")
                 }
-                _ = doMove(move: move)
+                doMove(move: move)
             }
         }
     }

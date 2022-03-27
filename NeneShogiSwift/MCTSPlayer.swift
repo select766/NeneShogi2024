@@ -2,13 +2,23 @@ import Foundation
 import CoreML
 
 class MCTSPlayer: NNPlayerBase {
+    struct RootNodeInfo {
+        let node: UCTNode
+        let originSFEN: String
+        let moves: [Move]
+    }
+    
     var batchSize: Int = 16
     var cPuct: Float = 1.0
+    // ルートノードの再利用を許可するか
+    var reuseRoot = true
     var stop = false
     let timerQueue: DispatchQueue
+    var lastRootNodeInfo: RootNodeInfo? = nil
     
     override init() {
         timerQueue = DispatchQueue(label: "mctsPlayerTimer")
+        super.init()
     }
     
     enum UCTSearchResult {
@@ -143,8 +153,16 @@ class MCTSPlayer: NNPlayerBase {
         })
 
         // ルートノードの作成
-        let rootNode = UCTNode()
-        rootNode.expandNode(board: position)
+        let rootNode: UCTNode
+        if let foundRootNode = findRootNode() {
+            print("ROOT found")
+            rootNode = foundRootNode
+        } else {
+            print("NEW ROOT")
+            rootNode = UCTNode()
+            rootNode.expandNode(board: position)
+        }
+        lastRootNodeInfo = nil // メモリ解放
         let childCount = rootNode.childMoves!.count
         if childCount == 0 {
             return Move.Resign
@@ -177,7 +195,57 @@ class MCTSPlayer: NNPlayerBase {
         let cpInt = winRateToCp(winrate: bestWinRate)
         info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
         
+        if reuseRoot {
+            // Swiftのリストは値型なのでmoveStackはコピーされる
+            lastRootNodeInfo = RootNodeInfo(node: rootNode, originSFEN: position.originSFEN, moves: position.moveStack)
+        }
+        
         return bestMove
+    }
+    
+    func findRootNode() -> UCTNode? {
+        // 前回の探索結果から、今回のルートノードを探す
+        // 今回の局面が、前回の局面から進んだ局面であり、実際に探索したノードが存在していればそれを返す
+        guard let lastRootNodeInfo = lastRootNodeInfo else {
+            return nil
+        }
+        if lastRootNodeInfo.originSFEN != position.originSFEN {
+            return nil
+        }
+        
+        if lastRootNodeInfo.moves.count > position.moveStack.count {
+            return nil
+        }
+        
+        for i in 0..<lastRootNodeInfo.moves.count {
+            if lastRootNodeInfo.moves[i] != position.moveStack[i] {
+                return nil
+            }
+        }
+        
+        var node = lastRootNodeInfo.node
+        for i in lastRootNodeInfo.moves.count..<position.moveStack.count {
+            let move = position.moveStack[i]
+            guard let childMoves = node.childMoves else {
+                return nil
+            }
+            var matchIdx = -1
+            for j in 0..<childMoves.count {
+                if childMoves[j] == move {
+                    matchIdx = j
+                    break
+                }
+            }
+            if matchIdx < 0 {
+                return nil
+            }
+            guard let childNode = node.childNodes?[matchIdx] else {
+                return nil
+            }
+            node = childNode
+        }
+        
+        return node
     }
     
     func search(rootNode: UCTNode) {
@@ -262,14 +330,14 @@ class MCTSPlayer: NNPlayerBase {
             node.childNodes = Array(repeating: nil, count: node.childMoves!.count)
         }
         let nextIndex = selectMaxUcbChild(node: node)
-        let undoInfo = position.doMove(move: node.childMoves![nextIndex])
+        position.doMove(move: node.childMoves![nextIndex])
         trajectory.append((node, nextIndex))
         
         node.moveCount += 1 // vloss
         node.childMoveCount![nextIndex] += 1 // vloss
         
         defer {
-            position.undoMove(undoMoveInfo: undoInfo)
+            position.undoMove()
         }
         
         if let childNode = node.childNodes![nextIndex] {
