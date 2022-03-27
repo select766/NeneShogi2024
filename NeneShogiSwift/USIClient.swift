@@ -11,6 +11,9 @@ class USIClient {
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
     var player: PlayerProtocol?
+    var goRunning = false
+    var lastPositionArg: String? = nil
+    var ponder = true // ponderを許可するかどうか
     var position: Position // 手番把握のためにAIとは別に必要
     init(matchManager: MatchManager, usiServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -110,13 +113,11 @@ class USIClient {
         case "position":
             if let commandArg = commandArg {
                 position.setUSIPosition(positionArg: commandArg)
-                self.player?.position(positionArg: commandArg)
+                // ponderが終わってから、positionを設定するためgoの内部で設定
+                lastPositionArg = commandArg
             }
             break
         case "go":
-            guard let player = self.player else {
-                fatalError()
-            }
             let thinkingTime: ThinkingTime
             if let commandArg = commandArg {
                 thinkingTime = parseThinkingTime(commandArg: commandArg)
@@ -124,16 +125,13 @@ class USIClient {
                 // 便宜上秒読み10秒にしておく
                 thinkingTime = ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 10.0, fisher: 0.0)
             }
-            player.go(info: {(message: String) in
-                self.queue.async {
-                    self.sendUSI(message: message)
-                }
-            }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
-                self.queue.async {
-                    self.sendUSI(message: "bestmove \(bestMove.toUSIString())")
-                    
-                }
-            })
+            runGo(thinkingTime: thinkingTime, secondCall: false)
+        case "stop":
+            // go ponderは行わないので通常起こらないはず
+            guard let player = self.player else {
+                fatalError()
+            }
+            player.stop()
         case "gameover":
             break
         case "quit":
@@ -144,6 +142,70 @@ class USIClient {
         default:
             print("Unknown command \(command)")
         }
+    }
+    
+    func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
+        guard let player = self.player else {
+            fatalError()
+        }
+        // ponderを止める
+        player.stop()
+        if goRunning {
+            if !secondCall {
+                print("waiting last go ends")
+            }
+            queue.asyncAfter(deadline: .now() + 0.01, execute: {
+                self.runGo(thinkingTime: thinkingTime, secondCall: true)
+            })
+            return
+        }
+        goRunning = true
+        // ponderが終わってから、positionを設定する
+        player.position(positionArg: lastPositionArg!)
+        player.go(info: {(message: String) in
+            self.queue.async {
+                self.sendUSI(message: message)
+            }
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+            self.queue.async {
+                self.sendUSI(message: "bestmove \(bestMove.toUSIString())")
+                self.goRunning = false
+                self.runPonderIfPossible(bestMove: bestMove)
+            }
+        })
+    }
+    
+    func runPonderIfPossible(bestMove: Move) {
+        if !ponder {
+            return
+        }
+        if bestMove == Move.Resign {
+            return
+        }
+        print("run ponder")
+        guard let player = self.player else {
+            fatalError()
+        }
+        // positionコマンドで来た局面+bestMoveで進めた局面で思考
+        goRunning = true
+        let nextPosition: String
+        if lastPositionArg == "startpos" {
+            nextPosition = "\(lastPositionArg!) moves \(bestMove.toUSIString())"
+        } else {
+            nextPosition = "\(lastPositionArg!) \(bestMove.toUSIString())"
+        }
+        player.position(positionArg: nextPosition)
+        let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
+        player.go(info: {(message: String) in
+            self.queue.async {
+                self.sendUSI(message: message)
+            }
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+            self.queue.async {
+                print("ponder result \(bestMove.toUSIString())")
+                self.goRunning = false
+            }
+        })
     }
     
     func parseThinkingTime(commandArg: String) -> ThinkingTime {

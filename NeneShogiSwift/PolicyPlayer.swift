@@ -44,4 +44,6 @@ class PolicyPlayer: NNPlayerBase {
         
         callback(bestMove)
     }
+    
+    override func stop() {}
 }

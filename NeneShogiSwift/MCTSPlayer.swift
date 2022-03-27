@@ -12,7 +12,7 @@ class MCTSPlayer: NNPlayerBase {
     var cPuct: Float = 1.0
     // ルートノードの再利用を許可するか
     var reuseRoot = true
-    var stop = false
+    var stopSignal = false
     let timerQueue: DispatchQueue
     var lastRootNodeInfo: RootNodeInfo? = nil
     
@@ -120,7 +120,7 @@ class MCTSPlayer: NNPlayerBase {
     func calculateThinkingTime(thinkingTime: ThinkingTime) -> Double {
         // 思考時間を決める
         let defaultTime = 10.0 // ルール依存だが決めうち(WCSC32用)
-        let margin = 2.0 // stopを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
+        let margin = 2.0 // stopSignalを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
         let minimum = 1.0
         let maxAvailable = thinkingTime.remaining + thinkingTime.byoyomi + thinkingTime.fisher
         if maxAvailable >= defaultTime {
@@ -139,8 +139,8 @@ class MCTSPlayer: NNPlayerBase {
     
     func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime) -> Move {
         // 思考時間設定
-        stop = false
-        var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopフラグを操作しないようにするためのフラグ
+        stopSignal = false
+        var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopSignalフラグを操作しないようにするためのフラグ
         defer {
             enableStop = false
         }
@@ -148,7 +148,7 @@ class MCTSPlayer: NNPlayerBase {
         print("Thinking time: \(calculatedThinkingTime)")
         timerQueue.asyncAfter(deadline: .now() + calculatedThinkingTime, execute: {
             if enableStop {
-                self.stop = true
+                self.stopSignal = true
             }
         })
 
@@ -251,7 +251,7 @@ class MCTSPlayer: NNPlayerBase {
     func search(rootNode: UCTNode) {
         // 一定の回数探索を行なって木を成長させる
         for iter in 0..<1000 {
-            if stop {
+            if stopSignal {
                 print("break by stop")
                 break
             }
@@ -399,5 +399,9 @@ class MCTSPlayer: NNPlayerBase {
         }
         
         return maxIndex
+    }
+    
+    override func stop() {
+        stopSignal = true
     }
 }

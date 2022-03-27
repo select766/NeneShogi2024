@@ -53,4 +53,6 @@ class NNPlayerBase: PlayerProtocol {
         // goコマンド
         fatalError()
     }
+    
+    func stop() {}
 }

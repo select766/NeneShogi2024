@@ -30,4 +30,6 @@ class RandomPlayer: PlayerProtocol {
         }
         callback(bestMove)
     }
+
+    func stop() {}
 }
