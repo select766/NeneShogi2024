@@ -92,7 +92,7 @@ class MCTSPlayer: NNPlayerBase {
             var policy:[Float] = Array(repeating: 0.0, count: count)
             for moveIdx in 0..<count {
                 let moveLabel = trajectories[i].3[moveIdx]
-                let score = moveArray[moveLabel]
+                let score = moveArray[moveLabel + i * 2187]
                 policy[moveIdx] = score
             }
             // softmax
@@ -122,6 +122,10 @@ class MCTSPlayer: NNPlayerBase {
         let defaultTime = 10.0 // ルール依存だが決めうち(WCSC32用)
         let margin = 2.0 // stopSignalを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
         let minimum = 1.0
+        if thinkingTime.ponder {
+            // ponderではstopされるまで思考
+            return 3600.0
+        }
         let maxAvailable = thinkingTime.remaining + thinkingTime.byoyomi + thinkingTime.fisher
         if maxAvailable >= defaultTime {
             return defaultTime
@@ -151,7 +155,7 @@ class MCTSPlayer: NNPlayerBase {
                 self.stopSignal = true
             }
         })
-
+        
         // ルートノードの作成
         let rootNode: UCTNode
         if let foundRootNode = findRootNode() {
@@ -252,80 +256,97 @@ class MCTSPlayer: NNPlayerBase {
         return node
     }
     
+    func searchOnce(rootNode: UCTNode) {
+        var queueItems: [([(UCTNode, Int)], UCTNode, [Float], [Int])] = []
+        var fixedItems: [([(UCTNode, Int)], Float)] = []
+        var trajectriesBatchDiscarded: [[(UCTNode, Int)]] = []
+        
+        for _ in 0..<batchSize {
+            var trajectory: [(UCTNode, Int)] = []
+            let searchResult = uctSearch(node: rootNode, trajectory: &trajectory)
+            switch searchResult {
+            case .Queued(let leafNode, let inputArray, let moveLabels):
+                queueItems.append((trajectory, leafNode, inputArray, moveLabels))
+            case .Discarded:
+                trajectriesBatchDiscarded.append(trajectory)
+            case .Fixed(let value):
+                fixedItems.append((trajectory, value))
+            }
+        }
+        // print("queue: \(queueItems.count), discard: \(trajectriesBatchDiscarded.count), fixed: \(fixedItems.count)")
+        
+        // 評価
+        let evaluated = evaluateTrajectories(trajectories: queueItems)
+        
+        // backup
+        for i in 0..<queueItems.count {
+            let queueItem = queueItems[i]
+            let ev = evaluated[i]
+            let leafNode = queueItem.1
+            leafNode.value = ev.0
+            leafNode.policy = ev.1
+            var value = 1.0 - ev.0
+            let trajs = queueItem.0
+            for j in (0..<trajs.count).reversed() {
+                let middleNode = trajs[j].0
+                let nextIndex = trajs[j].1
+                middleNode.sumValue += value
+                middleNode.childSumValue![nextIndex] += value
+                // virtual loss相殺
+                //                    middleNode.moveCount += 0
+                //                    middleNode.childMoveCount![nextIndex] += 0
+                value = 1.0 - value
+            }
+        }
+        for i in 0..<fixedItems.count {
+            let fixedItem = fixedItems[i]
+            var value = 1.0 - fixedItem.1
+            let trajs = fixedItem.0
+            for j in (0..<trajs.count).reversed() {
+                let middleNode = trajs[j].0
+                let nextIndex = trajs[j].1
+                middleNode.sumValue += value
+                middleNode.childSumValue![nextIndex] += value
+                // virtual loss相殺
+                //                    middleNode.moveCount += 0
+                //                    middleNode.childMoveCount![nextIndex] += 0
+                value = 1.0 - value
+            }
+        }
+        for i in 0..<trajectriesBatchDiscarded.count {
+            let trajs = trajectriesBatchDiscarded[i]
+            for j in (0..<trajs.count).reversed() {
+                let middleNode = trajs[j].0
+                let nextIndex = trajs[j].1
+                // virtual lossを戻す
+                middleNode.moveCount -= 1
+                middleNode.childMoveCount![nextIndex] -= 1
+            }
+        }
+    }
+    
+    
     func search(rootNode: UCTNode) {
-        // 一定の回数探索を行なって木を成長させる
-        for iter in 0..<1000 {
+        // 探索を行なって木を成長させる
+        for _ in 0..<100000 {
             if stopSignal {
                 print("break by stop")
                 break
             }
-            print("iter \(iter)")
-            var queueItems: [([(UCTNode, Int)], UCTNode, [Float], [Int])] = []
-            var fixedItems: [([(UCTNode, Int)], Float)] = []
-            var trajectriesBatchDiscarded: [[(UCTNode, Int)]] = []
-            
-            for _ in 0..<batchSize {
-                var trajectory: [(UCTNode, Int)] = []
-                let searchResult = uctSearch(node: rootNode, trajectory: &trajectory)
-                switch searchResult {
-                case .Queued(let leafNode, let inputArray, let moveLabels):
-                    queueItems.append((trajectory, leafNode, inputArray, moveLabels))
-                case .Discarded:
-                    trajectriesBatchDiscarded.append(trajectory)
-                case .Fixed(let value):
-                    fixedItems.append((trajectory, value))
-                }
+            if rootNode.moveCount >= 100000 {
+                // ツリーの大きさでおおよその上限を決める
+                // 開始局面における探索で、デバッガが表示するアプリ全体のメモリ使用量は
+                // moveCount=10000で30MB
+                // moveCount=100000で126MB (探索に105秒かかった)
+                // 1手1分以上考えることはなかなかないので100000を上限にしておく。分岐が多い局面では同じノード数でもメモリ消費が増えるため。
+                print("break by moveCount")
+                break
             }
-            print("queue: \(queueItems.count), discard: \(trajectriesBatchDiscarded.count), fixed: \(fixedItems.count)")
-            
-            // 評価
-            let evaluated = evaluateTrajectories(trajectories: queueItems)
-            
-            // backup
-            for i in 0..<queueItems.count {
-                let queueItem = queueItems[i]
-                let ev = evaluated[i]
-                let leafNode = queueItem.1
-                leafNode.value = ev.0
-                leafNode.policy = ev.1
-                var value = 1.0 - ev.0
-                let trajs = queueItem.0
-                for j in (0..<trajs.count).reversed() {
-                    let middleNode = trajs[j].0
-                    let nextIndex = trajs[j].1
-                    middleNode.sumValue += value
-                    middleNode.childSumValue![nextIndex] += value
-                    // virtual loss相殺
-                    //                    middleNode.moveCount += 0
-                    //                    middleNode.childMoveCount![nextIndex] += 0
-                    value = 1.0 - value
-                }
-            }
-            for i in 0..<fixedItems.count {
-                let fixedItem = fixedItems[i]
-                var value = 1.0 - fixedItem.1
-                let trajs = fixedItem.0
-                for j in (0..<trajs.count).reversed() {
-                    let middleNode = trajs[j].0
-                    let nextIndex = trajs[j].1
-                    middleNode.sumValue += value
-                    middleNode.childSumValue![nextIndex] += value
-                    // virtual loss相殺
-                    //                    middleNode.moveCount += 0
-                    //                    middleNode.childMoveCount![nextIndex] += 0
-                    value = 1.0 - value
-                }
-            }
-            for i in 0..<trajectriesBatchDiscarded.count {
-                let trajs = trajectriesBatchDiscarded[i]
-                for j in (0..<trajs.count).reversed() {
-                    let middleNode = trajs[j].0
-                    let nextIndex = trajs[j].1
-                    // virtual lossを戻す
-                    middleNode.moveCount -= 1
-                    middleNode.childMoveCount![nextIndex] -= 1
-                }
-            }
+            // searchOnce(rootNode: rootNode)
+            // autoreleasepoolがないとgoメソッド全体が終了するまで中で確保されたメモリが解放されず、メモリを使いすぎてクラッシュする(デバッガで表示されるサイズから、DNNの入出力バッファが解放されていないと推測される)
+            autoreleasepool(invoking: {
+                searchOnce(rootNode: rootNode)
+            })
         }
     }
     

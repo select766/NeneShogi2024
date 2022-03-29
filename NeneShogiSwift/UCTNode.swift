@@ -30,4 +30,14 @@ class UCTNode {
         self.childMoveCount = Array(repeating: 0, count: moveList.count)
         self.childSumValue = Array(repeating: 0.0, count: moveList.count)
     }
+    
+    func printSummary() {
+        print("moveCount \(moveCount)")
+        print("sumValue \(sumValue)")
+        if let childMoves = childMoves {
+            for i in 0..<childMoves.count {
+                print("\(childMoves[i].toUSIString()):  \(childMoveCount![i]) - \(childSumValue![i])")
+            }
+        }
+    }
 }

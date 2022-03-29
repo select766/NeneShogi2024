@@ -133,6 +133,11 @@ class USIClient {
             }
             player.stop()
         case "gameover":
+            // ponder中に終わる場合があるので一応stopしておく
+            guard let player = self.player else {
+                fatalError()
+            }
+            player.stop()
             break
         case "quit":
             // 接続を切断することで接続先のncコマンドが終了する
