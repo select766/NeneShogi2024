@@ -120,14 +120,14 @@ class MCTSPlayer: NNPlayerBase {
     func calculateThinkingTime(thinkingTime: ThinkingTime) -> Double {
         // 思考時間を決める
         let defaultTime = 10.0 // ルール依存だが決めうち(WCSC32用)
-        let margin = 2.0 // stopSignalを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
+        let margin = 3.0 // stopSignalを設定してから、実際に停止するまで+通信遅延を加味し、時間を使い切る場合に時間切れにならないためのマージン
         let minimum = 1.0
         if thinkingTime.ponder {
             // ponderではstopされるまで思考
             return 3600.0
         }
         let maxAvailable = thinkingTime.remaining + thinkingTime.byoyomi + thinkingTime.fisher
-        if maxAvailable >= defaultTime {
+        if maxAvailable >= defaultTime + margin {
             return defaultTime
         } else {
             return max(maxAvailable - margin, minimum)
