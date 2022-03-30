@@ -161,6 +161,10 @@ class MCTSPlayer: NNPlayerBase {
         
         let rootNode = findOrMakeRootNode()
         lastRootNodeInfo = nil // メモリ解放
+        if position.isNyugyoku() {
+            // 入玉宣言
+            return Move.Win
+        }
         let childCount = rootNode.childMoves!.count
         if childCount == 0 {
             return Move.Resign
@@ -392,6 +396,12 @@ class MCTSPlayer: NNPlayerBase {
             // 子ノードを作成
             let newChildNode = node.createChildNode(index: nextIndex)
             newChildNode.expandNode(board: position)
+            if position.isNyugyoku() {
+                // 末端ノード(宣言勝ち)
+                newChildNode.value = 1.0
+                newChildNode.terminal = true
+                return UCTSearchResult.Fixed(leafValue: 1.0)
+            }
             if newChildNode.childMoves!.count == 0 {
                 // 末端ノード(詰み)
                 newChildNode.value = 0.0

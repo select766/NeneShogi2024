@@ -14,6 +14,9 @@ let hirateHands: [[Int]] = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
 
 let hirateSFEN = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
 
+let nyugyokuPointPieceMap = [0, 1, 1, 1, 1, 5, 5, 1, 0, 1, 1, 1, 1, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+let nyugyokuPieceCountMap = [0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 // 本当はZobrist hashとかのほうがよさそうだが簡単に使える実装でごまかす
 // https://ja.wikipedia.org/wiki/%E5%B7%A1%E5%9B%9E%E5%86%97%E9%95%B7%E6%A4%9C%E6%9F%BB
 let crcTable: [UInt32] = crcInitializer()
@@ -646,6 +649,86 @@ class Position {
             }
         }
         return nil
+    }
+    
+    func _isNyugyokuAsSente(minPoint: Int) -> Bool {
+        var bkSq = Square(0) // black kingの位置
+        for sq in 0..<Square.SQ_NB {
+           if board[sq] == Piece.B_KING {
+               bkSq = Square(sq)
+               break
+           }
+        }
+        if bkSq.rank >= 3 {
+            // 2. 敵陣三段目まで(rank=0,1,2)でないのでダメ
+            return false
+        }
+        
+        var point = 0
+        var pieceCount = 0
+        for file in 0..<9 {
+            for rank in 0..<3 {
+                let p = board[file * 9 + rank].piece
+                pieceCount += nyugyokuPieceCountMap[p]
+                point += nyugyokuPointPieceMap[p]
+            }
+        }
+        
+        if pieceCount < 10 {
+            // 4. 宣言側の敵陣三段目以内の駒は、玉を除いて１０枚以上存在する。
+            return false
+        }
+        point += hand[0][0] // 歩
+        point += hand[0][1]
+        point += hand[0][2]
+        point += hand[0][3]
+        point += hand[0][4] * 5 // 角
+        point += hand[0][5] * 5 // 飛
+        point += hand[0][6]
+        
+        if point < minPoint {
+            return false
+        }
+        
+        return true
+    }
+    
+    func isNyugyoku() -> Bool {
+        /*
+         入玉宣言勝ちルール(第32回世界コンピュータ将棋選手権ルールより)
+         一 宣言側の手番である。
+         二 宣言側の玉が敵陣三段目以内に入っている。
+         三 宣言側が、大駒５点小駒１点で計算して
+          ・先手の場合２８点以上の持点がある。
+          ・後手の場合２７点以上の持点がある。
+          ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒
+         のみである。
+         四 宣言側の敵陣三段目以内の駒は、玉を除いて１０枚以上存在する。
+         五 宣言側の玉に王手がかかっていない。
+         六 宣言側の持ち時間が残っている。
+         */
+        // 1., 6.はここでは問わない
+        if checkHistory[checkHistory.count-1] {
+            // 5. 王手なのでだめ
+            return false
+        }
+        
+        var inv = false
+        var minPoint = 28
+        // 常に先手番として思考する（点数基準だけは違うので注意）
+        if sideToMove == PColor.WHITE {
+            rotatePositionInplace()
+            inv = true
+            minPoint = 27
+        }
+        
+        let result = _isNyugyokuAsSente(minPoint: minPoint)
+        
+        if inv {
+            rotatePositionInplace()
+        }
+        
+        return result
     }
     
     func setSFEN(sfen: String) {

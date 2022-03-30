@@ -12,6 +12,7 @@ struct Move: Equatable {
     let isDrop: Bool;
     
     static let Resign = Move(moveFrom: Square(0), moveTo: Square(0), moveDroppedPiece: 0, isPromote: false, isDrop: false)
+    static let Win = Move(moveFrom: Square(1), moveTo: Square(1), moveDroppedPiece: 0, isPromote: false, isDrop: false)
     
     init() {
         self.init(moveFrom: Square(0), moveTo: Square(0), moveDroppedPiece: 0, isPromote: false, isDrop: false)
@@ -40,6 +41,9 @@ struct Move: Equatable {
     static func fromUSIString(moveUSI: String) -> Move? {
         if moveUSI == "resign" {
             return Move.Resign
+        }
+        if moveUSI == "win" {
+            return Move.Win
         }
         guard let rawAscii = moveUSI.data(using: .ascii) else {
             return nil
@@ -80,7 +84,11 @@ struct Move: Equatable {
     
     func toUSIString() -> String {
         if moveFrom == moveTo {
-            return "resign"
+            if moveFrom.square == 0 {
+                return "resign"
+            } else if moveFrom.square == 1 {
+                return "win"
+            }
         }
         let toFileChar = moveFileToUSI[moveTo.file]
         let toRankChar = moveRankToUSI[moveTo.rank]
