@@ -12,6 +12,8 @@ class MCTSPlayer: NNPlayerBase {
     var cPuct: Float = 1.0
     // ルートノードの再利用を許可するか
     var reuseRoot = true
+    // 現在の思考がponderかどうか
+    var inPonderMode = false
     var stopSignal = false
     let timerQueue: DispatchQueue
     var lastRootNodeInfo: RootNodeInfo? = nil
@@ -142,6 +144,7 @@ class MCTSPlayer: NNPlayerBase {
     }
     
     func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime) -> Move {
+        inPonderMode = thinkingTime.ponder
         // 思考時間設定
         stopSignal = false
         var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopSignalフラグを操作しないようにするためのフラグ
@@ -182,25 +185,25 @@ class MCTSPlayer: NNPlayerBase {
         searchBenchDefault.startSection(id: .empty)
         searchBenchDefault.display()
         
-        // 最大訪問数の子ノードを選択
-        var bestVisit: Int32 = 0
-        var bestVisitIdx = 0
-        for moveIdx in 0..<rootNode.childMoves!.count {
-            let visit = rootNode.childMoveCount![moveIdx]
-            if visit > bestVisit {
-                bestVisit = visit
-                bestVisitIdx = moveIdx
+        if !inPonderMode {
+            let pv = rootNode.getPV()
+            let cpInt = winRateToCp(winrate: pv.winrate)
+            var infoString = "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
+            for move in pv.moves {
+                infoString += " \(move.toUSIString())"
             }
-            //            print("\(rootNode.childMoves![moveIdx].toUSIString()): \(visit)")
+            info(infoString)
         }
-        let bestMove = rootNode.childMoves![bestVisitIdx]
-        let bestWinRate = rootNode.childSumValue![bestVisitIdx] / Float(rootNode.childMoveCount![bestVisitIdx])
         
-        let cpInt = winRateToCp(winrate: bestWinRate)
-        if thinkingTime.ponder {
-            info("info string ponder result = \(bestMove.toUSIString())")
-        } else {
-            info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
+        var bestMove: Move = Move.Resign
+        if let bestVisitInfo = rootNode.getBestVisitChild() {
+            
+            bestMove = bestVisitInfo.move
+            if inPonderMode {
+                // 勝手にやっているponderの読み筋は将棋所で正しく表示されないので読み筋のフォーマットでは出さない
+                info("info string ponder result = \(bestMove.toUSIString())")
+            }
+            
         }
         
         if reuseRoot {
