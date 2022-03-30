@@ -30,7 +30,7 @@ struct Move: Equatable {
     }
     
     static func makeMoveDrop(moveDroppedPiece: Int, moveTo: Square) -> Move {
-        return Move(moveFrom: Square(0), moveTo: moveTo, moveDroppedPiece: moveDroppedPiece, isPromote: false, isDrop: true)
+        return Move(moveFrom: Square(81), moveTo: moveTo, moveDroppedPiece: moveDroppedPiece, isPromote: false, isDrop: true)
     }
     
     func hash() -> Int {
