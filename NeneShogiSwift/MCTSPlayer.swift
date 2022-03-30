@@ -159,16 +159,7 @@ class MCTSPlayer: NNPlayerBase {
             }
         })
         
-        // ルートノードの作成
-        let rootNode: UCTNode
-        if let foundRootNode = findRootNode() {
-            print("ROOT found")
-            rootNode = foundRootNode
-        } else {
-            print("NEW ROOT")
-            rootNode = UCTNode()
-            rootNode.expandNode(board: position)
-        }
+        let rootNode = findOrMakeRootNode()
         lastRootNodeInfo = nil // メモリ解放
         let childCount = rootNode.childMoves!.count
         if childCount == 0 {
@@ -212,6 +203,22 @@ class MCTSPlayer: NNPlayerBase {
         }
         
         return bestMove
+    }
+    
+    func findOrMakeRootNode() -> UCTNode {
+        // ルートノードの作成
+        if let foundRootNode = findRootNode() {
+            // 千日手を２回の繰り返しで成立して末端ノードにしている。
+            // ルール上は千日手成立してない場面を思考するため、ルートノードを作り直す。新規作成したルートノードは末端ノードにならない。
+            if !foundRootNode.terminal {
+                print("ROOT found")
+                return foundRootNode
+            }
+        }
+        print("NEW ROOT")
+        let rootNode = UCTNode()
+        rootNode.expandNode(board: position)
+        return rootNode
     }
     
     func findRootNode() -> UCTNode? {
@@ -391,11 +398,18 @@ class MCTSPlayer: NNPlayerBase {
                 newChildNode.terminal = true
                 return UCTSearchResult.Fixed(leafValue: 0.0)
             } else {
-                var moveLabels: [Int] = []
-                for i in 0..<newChildNode.childMoves!.count {
-                    moveLabels.append(position.getDNNMoveLabel(move: newChildNode.childMoves![i]))
+                if let sennichite = position.isSennichite() {
+                    // 末端ノード(千日手)
+                    newChildNode.value = sennichite
+                    newChildNode.terminal = true
+                    return UCTSearchResult.Fixed(leafValue: sennichite)
+                } else {
+                    var moveLabels: [Int] = []
+                    for i in 0..<newChildNode.childMoves!.count {
+                        moveLabels.append(position.getDNNMoveLabel(move: newChildNode.childMoves![i]))
+                    }
+                    return UCTSearchResult.Queued(leafNode: newChildNode, inputArray: position.getDNNInput(), moveLabels: moveLabels)
                 }
-                return UCTSearchResult.Queued(leafNode: newChildNode, inputArray: position.getDNNInput(), moveLabels: moveLabels)
             }
         }
     }

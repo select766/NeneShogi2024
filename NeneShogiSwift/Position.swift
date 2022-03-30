@@ -604,6 +604,50 @@ class Position {
         return nil
     }
     
+    func isSennichite() -> Float? {
+        // ハッシュ値で検証するので、誤って千日手判定される可能性あり
+        let hc = hashHistory.count
+        let currentHash = hashHistory[hc-1]
+        for i in (0..<hc-1).reversed() {
+            if hashHistory[i] == currentHash {
+                // 千日手成立
+                // 現局面, 現局面-2, ..., iが王手なら、連続王手の千日手で、手番でない（１つ前の手で王手をかけた）側が負け。現局面の評価は勝ち相当の1.0
+                // 現局面-1, 現局面-3, ..., iが王手なら、連続王手の千日手で、手番側が負け。
+                // 連続王手の千日手でなければ引き分けで0.5
+                var idx = hc - 1
+                var tebanOute = true
+                while idx >= i {
+                    if !checkHistory[idx] {
+                        tebanOute = false
+                        break
+                    }
+                    idx -= 2
+                }
+                if tebanOute {
+                    // 相手に王手をかけられた状態なので手番側の勝ち
+                    return 1.0
+                }
+                var aiteOute = true
+                idx = hc - 2
+                while idx >= i {
+                    if !checkHistory[idx] {
+                        aiteOute = false
+                        break
+                    }
+                    idx -= 2
+                }
+                if aiteOute {
+                    // 相手番が常に王手＝自分がかけた側なので手番側の負け
+                    return 0.0
+                }
+                
+                // 引き分け
+                return 0.5
+            }
+        }
+        return nil
+    }
+    
     func setSFEN(sfen: String) {
         let elems: [String.SubSequence] = sfen.split(separator: " ")
         let boardStr = elems[0]
