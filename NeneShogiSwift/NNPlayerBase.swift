@@ -3,7 +3,7 @@ import CoreML
 
 class NNPlayerBase: PlayerProtocol {
     var position: Position
-    var model: DlShogiResnet10SwishBatch?
+    var model: DlShogiResnet15x224SwishBatch?
     let searchDispatchQueue: DispatchQueue
     init() {
         position = Position()
@@ -15,7 +15,7 @@ class NNPlayerBase: PlayerProtocol {
             // モデルの準備
             let config = MLModelConfiguration()
             config.computeUnits = .all//デバイス指定(all/cpuAndGPU/cpuOnly)
-            self.model = try! DlShogiResnet10SwishBatch(configuration: config)
+            self.model = try! DlShogiResnet15x224SwishBatch(configuration: config)
             callback()
         }
     }

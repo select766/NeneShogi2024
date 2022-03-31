@@ -33,6 +33,7 @@
 		AACE1F8727EB2D9C0099667A /* NNPlayerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */; };
 		AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E6F27EEB607007BF351 /* SearchBench.swift */; };
 		AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7127EECB83007BF351 /* CSAClient.swift */; };
+		AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */; };
 		AAFFE6EA27CB24240044CA38 /* DNNInputTestCase.txt in Resources */ = {isa = PBXBuildFile; fileRef = AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */; };
 		AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */; };
 /* End PBXBuildFile section */
@@ -85,6 +86,7 @@
 		AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NNPlayerBase.swift; sourceTree = "<group>"; };
 		AAF48E6F27EEB607007BF351 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		AAF48E7127EECB83007BF351 /* CSAClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAClient.swift; sourceTree = "<group>"; };
+		AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet15x224SwishBatch.mlmodel; sourceTree = "<group>"; };
 		AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DNNInputTestCase.txt; sourceTree = "<group>"; };
 		AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet10SwishBatch.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -149,6 +151,7 @@
 				AA9C013827C1CF8E00BB71E0 /* Piece.swift */,
 				AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */,
 				AA9C013C27C1D6BA00BB71E0 /* Position.swift */,
+				AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */,
 				AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */,
 				AA9C013427C1C88600BB71E0 /* Square.swift */,
 				AA9C013627C1CCB800BB71E0 /* Color.swift */,
@@ -342,6 +345,7 @@
 				AACE1F7D27EB1C750099667A /* MCTSPlayer.swift in Sources */,
 				AACE1F8727EB2D9C0099667A /* NNPlayerBase.swift in Sources */,
 				AACE1F8327EB244A0099667A /* PlayerProtocol.swift in Sources */,
+				AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */,
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
 				AACE1F7F27EB1C940099667A /* UCTNode.swift in Sources */,
