@@ -10,6 +10,7 @@ class MCTSPlayer: NNPlayerBase {
     
     var batchSize: Int = 16
     var cPuct: Float = 1.0
+    var nodeLimit = 100000
     // ルートノードの再利用を許可するか
     var reuseRoot = true
     // 現在の思考がponderかどうか
@@ -347,7 +348,7 @@ class MCTSPlayer: NNPlayerBase {
                 print("break by stop")
                 break
             }
-            if rootNode.moveCount >= 100000 {
+            if rootNode.moveCount >= nodeLimit {
                 // ツリーの大きさでおおよその上限を決める
                 // 開始局面における探索で、デバッガが表示するアプリ全体のメモリ使用量は
                 // moveCount=10000で30MB

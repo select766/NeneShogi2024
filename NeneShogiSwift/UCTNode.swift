@@ -94,7 +94,7 @@ class UCTNode {
         print("sumValue \(sumValue)")
         if let childMoves = childMoves {
             for i in 0..<childMoves.count {
-                print("\(childMoves[i].toUSIString()):  \(childMoveCount![i]) - \(childSumValue![i])")
+                print("\(childMoves[i].toUSIString()): \(policy![i]) \(childMoveCount![i]) - \(childSumValue![i])")
             }
         }
     }
