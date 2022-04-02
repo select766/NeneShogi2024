@@ -8,7 +8,7 @@ class MCTSPlayer: NNPlayerBase {
         let moves: [Move]
     }
     
-    var batchSize: Int = 16
+    var batchSize: Int = 1
     var cPuct: Float = 1.0
     var nodeLimit = 100000
     // ルートノードの再利用を許可するか
