@@ -219,6 +219,8 @@ class Position {
         sideToMove = PColor.BLACK
         gamePly = 1
         originSFEN = hirateSFEN
+        hashHistory = []
+        checkHistory = []
         moveStack = []
         undoStack = []
         hashHistory.append(hash())
@@ -789,6 +791,8 @@ class Position {
         originSFEN = sfen
         moveStack = []
         undoStack = []
+        hashHistory = []
+        checkHistory = []
         hashHistory.append(hash())
         checkHistory.append(inCheck())
     }
