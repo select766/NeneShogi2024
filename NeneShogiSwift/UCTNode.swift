@@ -43,7 +43,7 @@ class UCTNode {
             return nil
         }
 
-        var bestVisit: Int32 = -1
+        var bestVisit: Int32 = 0 // 全ノード訪問0回なら、bestVisitを更新せず、読み筋なしとする(そうしないとランダムな指し手がPV末端に出る)
         var bestVisitIdx = -1
         for moveIdx in 0..<childMoves.count {
             let visit = childMoveCount[moveIdx]
