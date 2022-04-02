@@ -428,7 +428,7 @@ class MCTSPlayer: NNPlayerBase {
     func selectMaxUcbChild(node: UCTNode) -> Int {
         var maxUcb: Float = -1.0
         var maxIndex = 0
-        let moveCount = Float(node.moveCount)
+        let moveCountSqrt = sqrtf(Float(node.moveCount))
         for i in 0..<node.childMoveCount!.count {
             let childMoveCount = Float(node.childMoveCount![i])
             let childSumValue = node.childSumValue![i]
@@ -439,8 +439,8 @@ class MCTSPlayer: NNPlayerBase {
                 q = 0.0
             }
             let u: Float
-            if moveCount > 0.0 {
-                u = sqrtf(moveCount / (childMoveCount+1.0))
+            if moveCountSqrt > 0.0 {
+                u = moveCountSqrt / (childMoveCount+1.0)
             } else {
                 u = 1.0
             }
