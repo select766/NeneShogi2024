@@ -1,5 +1,6 @@
 import SwiftUI
 
+let userDefaultsCSAServerIpAddressKey = "csaServerIpAddress"
 let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 
 struct ContentView: View {
@@ -7,8 +8,9 @@ struct ContentView: View {
     @State var matchManager: MatchManager?
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
+    @State var csaServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsCSAServerIpAddressKey) ?? "127.0.0.1"
     
-    func start() {
+    func start(serverType: String) {
         if matchManager != nil {
             return
         }
@@ -18,8 +20,13 @@ struct ContentView: View {
             
         })
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
-        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress)
-        matchManager?.start()
+        UserDefaults.standard.set(csaServerIpAddress, forKey: userDefaultsCSAServerIpAddressKey)
+        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress, csaServerIpAddress: csaServerIpAddress)
+        if serverType == "USI" {
+            matchManager?.start()
+        } else if serverType == "CSA" {
+            matchManager?.startCSA()
+        }
     }
     
     func testPosition() {
@@ -103,10 +110,18 @@ struct ContentView: View {
         VStack {
             Text(latestMessage)
                 .padding()
-            Button(action: start) {
-                Text("Start")
+            Button(action: {
+                start(serverType: "USI")
+            }) {
+                Text("Start USI")
             }.padding()
             TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 50.0).padding()
+            Button(action: {
+                start(serverType: "CSA")
+            }) {
+                Text("Start CSA")
+            }.padding()
+            TextField("CSA IP", text: $csaServerIpAddress).frame(width: 100.0, height: 50.0).padding()
             Button(action: testPosition) {
                 Text("Test position")
             }.padding()

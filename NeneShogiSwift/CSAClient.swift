@@ -8,6 +8,8 @@ class CSAClient {
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
     var player: PlayerProtocol?
+    var myColor: PColor?
+
     init(matchManager: MatchManager, csaServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "csaClient")
@@ -22,6 +24,7 @@ class CSAClient {
             switch newState {
             case .ready:
                 self.matchManager.displayMessage("connected to CSA server")
+                self.sendCSA(message: "LOGIN nene test-300-10F") // TODO 設定可能にする
                 self.startRecv()
             case .waiting(let nwError):
                 // ネットワーク構成が変化するまで待つ=事実上の接続失敗
@@ -72,7 +75,32 @@ class CSAClient {
     
     func handleCSACommand(command: String) {
         self.matchManager.displayMessage("CSA recv: '\(command)'")
-        fatalError("CSA protocol not implemented")
+        if command.starts(with: "Your_Turn") {
+            if command == "Your_Turn:+" {
+                myColor = PColor.BLACK
+            } else if command == "Your_Turn:-" {
+                myColor = PColor.WHITE
+            } else {
+                fatalError("Unknown turn")
+            }
+        } else if command.starts(with: "END Game_Summary") {
+            self.sendCSA(message: "AGREE")
+        } else if command.starts(with: "START") {
+            if myColor == PColor.BLACK {
+                // 初手
+                self.sendCSA(message: "+7776FU")
+            }
+        } else if command.starts(with: "+") {
+            // 先手の手
+            if myColor == PColor.WHITE {
+                self.sendCSA(message: "%TORYO")
+            }
+        } else if command.starts(with: "-") {
+            // 後手の手
+            if myColor == PColor.BLACK {
+                self.sendCSA(message: "%TORYO")
+            }
+        }
     }
     
     func _send(messageWithNewline: String) {
@@ -84,11 +112,11 @@ class CSAClient {
         
     }
     
-    func sendUSI(message: String) {
+    func sendCSA(message: String) {
         _send(messageWithNewline: message + "\n")
     }
     
-    func sendUSI(messages: [String]) {
+    func sendCSA(messages: [String]) {
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())
     }
 }
