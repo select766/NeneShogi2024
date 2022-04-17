@@ -16,6 +16,38 @@ let _pieceTypeFromCSAChar = [
     "UM": Piece.HORSE, "RY": Piece.DRAGON,
 ]
 let _csaCharFromPieceType = Dictionary(uniqueKeysWithValues: _pieceTypeFromCSAChar.map({key, value in (value, key)}))
+let _printCharFromPieceType = [
+    1: "歩",
+    2: "香",
+    3: "桂",
+    4: "銀",
+    5: "角",
+    6: "飛",
+    7: "金",
+    8: "玉",
+    9: "と",
+    10: "成香",
+    11: "成桂",
+    12: "成銀",
+    13: "馬",
+    14: "龍",
+]
+let _printOneCharFromPieceType = [
+    1: "歩",
+    2: "香",
+    3: "桂",
+    4: "銀",
+    5: "角",
+    6: "飛",
+    7: "金",
+    8: "玉",
+    9: "と",
+    10: "杏",
+    11: "圭",
+    12: "全",
+    13: "馬",
+    14: "龍",
+]
 
 struct Piece: Equatable {
     let piece: Int

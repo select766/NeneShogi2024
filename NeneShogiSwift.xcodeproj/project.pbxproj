@@ -31,6 +31,8 @@
 		AACE1F8327EB244A0099667A /* PlayerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8227EB244A0099667A /* PlayerProtocol.swift */; };
 		AACE1F8527EB26C50099667A /* PolicyPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8427EB26C50099667A /* PolicyPlayer.swift */; };
 		AACE1F8727EB2D9C0099667A /* NNPlayerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */; };
+		AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC86E280C18B300517C11 /* SearchProgress.swift */; };
+		AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC870280C192F00517C11 /* DetailedMove.swift */; };
 		AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E6F27EEB607007BF351 /* SearchBench.swift */; };
 		AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7127EECB83007BF351 /* CSAClient.swift */; };
 		AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */; };
@@ -84,6 +86,8 @@
 		AACE1F8227EB244A0099667A /* PlayerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProtocol.swift; sourceTree = "<group>"; };
 		AACE1F8427EB26C50099667A /* PolicyPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicyPlayer.swift; sourceTree = "<group>"; };
 		AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NNPlayerBase.swift; sourceTree = "<group>"; };
+		AACEC86E280C18B300517C11 /* SearchProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchProgress.swift; sourceTree = "<group>"; };
+		AACEC870280C192F00517C11 /* DetailedMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedMove.swift; sourceTree = "<group>"; };
 		AAF48E6F27EEB607007BF351 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		AAF48E7127EECB83007BF351 /* CSAClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAClient.swift; sourceTree = "<group>"; };
 		AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet15x224SwishBatch.mlmodel; sourceTree = "<group>"; };
@@ -166,6 +170,8 @@
 				AACE1F7E27EB1C940099667A /* UCTNode.swift */,
 				AAF48E6F27EEB607007BF351 /* SearchBench.swift */,
 				AAF48E7127EECB83007BF351 /* CSAClient.swift */,
+				AACEC86E280C18B300517C11 /* SearchProgress.swift */,
+				AACEC870280C192F00517C11 /* DetailedMove.swift */,
 			);
 			path = NeneShogiSwift;
 			sourceTree = "<group>";
@@ -335,6 +341,7 @@
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,
 				AA9C013927C1CF8E00BB71E0 /* Piece.swift in Sources */,
 				AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */,
+				AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */,
 				AACE1F8527EB26C50099667A /* PolicyPlayer.swift in Sources */,
 				AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */,
 				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
@@ -349,6 +356,7 @@
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
 				AACE1F7F27EB1C940099667A /* UCTNode.swift in Sources */,
+				AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

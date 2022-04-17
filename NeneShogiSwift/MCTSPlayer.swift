@@ -137,14 +137,14 @@ class MCTSPlayer: NNPlayerBase {
         }
     }
     
-    override func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         searchDispatchQueue.async {
             let bestMove = self.goMain(info: info, thinkingTime: thinkingTime)
             callback(bestMove)
         }
     }
     
-    func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime) -> Move {
+    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime) -> Move {
         inPonderMode = thinkingTime.ponder
         // 思考時間設定
         stopSignal = false
@@ -182,13 +182,19 @@ class MCTSPlayer: NNPlayerBase {
         searchBenchDefault.display()
         
         if !inPonderMode {
+            // TODO: 探索の途中でも一定期間ごとにPV出力
             let pv = rootNode.getPV()
             let cpInt = winRateToCp(winrate: pv.winrate)
-            var infoString = "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
+            // var infoString = "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
+            var pvDetailedMoves: [DetailedMove] = []
             for move in pv.moves {
-                infoString += " \(move.toUSIString())"
+                pvDetailedMoves.append(position.makeDetailedMove(move: move))
+                position.doMove(move: move)
             }
-            info(infoString)
+            for _ in 0..<pv.moves.count {
+                position.undoMove()
+            }
+            info(SearchProgress(message: "", rootPosition: position.copy(), pv: pvDetailedMoves, scoreCp: cpInt))
         }
         
         var bestMove: Move = Move.Resign
@@ -197,7 +203,8 @@ class MCTSPlayer: NNPlayerBase {
             bestMove = bestVisitInfo.move
             if inPonderMode {
                 // 勝手にやっているponderの読み筋は将棋所で正しく表示されないので読み筋のフォーマットでは出さない
-                info("info string ponder result = \(bestMove.toUSIString())")
+                // TODO: USI出力
+                // info("info string ponder result = \(bestMove.toUSIString())")
             }
             
         }

@@ -6,6 +6,7 @@ let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
+    @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
     @State var csaServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsCSAServerIpAddressKey) ?? "127.0.0.1"
@@ -17,8 +18,9 @@ struct ContentView: View {
         let shogiUIInterface = ShogiUIInterface(displayMessage: {message in DispatchQueue.main.async {
             self.latestMessage = message
         }
-            
-        })
+        }, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
+            self.searchProgress = searchProgress
+        }})
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
         UserDefaults.standard.set(csaServerIpAddress, forKey: userDefaultsCSAServerIpAddressKey)
         matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress, csaServerIpAddress: csaServerIpAddress)
@@ -105,31 +107,44 @@ struct ContentView: View {
             }
         }
     }
-
+    
     var body: some View {
-        VStack {
-            Text(latestMessage)
-                .padding()
-            Button(action: {
-                start(serverType: "USI")
-            }) {
-                Text("Start USI")
-            }.padding()
-            TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 50.0).padding()
-            Button(action: {
-                start(serverType: "CSA")
-            }) {
-                Text("Start CSA")
-            }.padding()
-            TextField("CSA IP", text: $csaServerIpAddress).frame(width: 100.0, height: 50.0).padding()
-            Button(action: testPosition) {
-                Text("Test position")
-            }.padding()
-            Button(action: testDNNInput) {
-                Text("Test dnn input")
-            }.padding()
-            Text(testProgress)
-                .padding()
+        Group {
+            if let searchProgress = searchProgress {
+                VStack {
+                    Text(latestMessage)
+                        .padding()
+                    Text(searchProgress.rootPosition.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                        .padding()
+                    Text(searchProgress.pv.count > 0 ? searchProgress.pv[0].toPrintString() : "-")
+                        .padding()
+                }
+            } else {
+                VStack {
+                    Text(latestMessage)
+                        .padding()
+                    Button(action: {
+                        start(serverType: "USI")
+                    }) {
+                        Text("Start USI")
+                    }.padding()
+                    TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 50.0).padding()
+                    Button(action: {
+                        start(serverType: "CSA")
+                    }) {
+                        Text("Start CSA")
+                    }.padding()
+                    TextField("CSA IP", text: $csaServerIpAddress).frame(width: 100.0, height: 50.0).padding()
+                    Button(action: testPosition) {
+                        Text("Test position")
+                    }.padding()
+                    Button(action: testDNNInput) {
+                        Text("Test dnn input")
+                    }.padding()
+                    Text(testProgress)
+                        .padding()
+                }
+            }
         }
     }
 }

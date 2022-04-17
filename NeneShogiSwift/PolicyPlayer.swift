@@ -2,13 +2,13 @@ import Foundation
 import CoreML
 
 class PolicyPlayer: NNPlayerBase {
-    override func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         searchDispatchQueue.async {
             self.goMain(info: info, thinkingTime: thinkingTime, callback: callback)
         }
     }
     
-    func goMain(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         guard let model = self.model else {
             fatalError()
@@ -40,8 +40,8 @@ class PolicyPlayer: NNPlayerBase {
         let resultArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.result.dataPointer))
         let cpInt = winRateToCp(winrate: resultArray[0])
         
-        info("info depth 1 score cp \(cpInt) pv \(bestMove.toUSIString())")
-        
+        info(SearchProgress(message: "", rootPosition: position.copy(), pv: [position.makeDetailedMove(move: bestMove)], scoreCp: cpInt))
+
         callback(bestMove)
     }
     

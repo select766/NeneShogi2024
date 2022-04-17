@@ -1,3 +1,6 @@
+let moveFileForPrint: [String] = ["１","２","３","４","５","６","７","８","９"]
+let moveRankForPrint: [String] = ["一","二","三","四","五","六","七","八","九"]
+
 struct Square: Equatable {
     static let SQ_NB = 81;
     let square: Int
@@ -36,5 +39,13 @@ struct Square: Equatable {
 
     func rotate() -> Square {
         return Square(80 - square)
+    }
+    
+    func toPrintString() -> String {
+        if (file < 0 || file >= 9 || rank < 0 || rank >= 9) {
+            // warning
+            return "";
+        }
+        return moveFileForPrint[file] + moveRankForPrint[rank]
     }
 }

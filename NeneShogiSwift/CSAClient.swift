@@ -12,7 +12,7 @@ class CSAClient {
     var moves: [Move]
     var position: Position
     var state = "init"
-
+    
     init(matchManager: MatchManager, csaServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "csaClient")
@@ -114,7 +114,7 @@ class CSAClient {
                 // 初手
                 player?.position(moves: moves)
                 // TODO: 時間計算
-                player?.go(info: {(message: String) in
+                player?.go(info: {(sp: SearchProgress) in
                 }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
                     self.queue.async {
                         let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
@@ -135,8 +135,7 @@ class CSAClient {
                 // 先手の手
                 if myColor == PColor.WHITE {
                     // TODO: 時間計算
-                    player?.go(info: {(message: String) in
-                    }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
+                    player?.go(info: {(sp: SearchProgress) in }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
                         self.queue.async {
                             let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
                             self.sendCSA(message: bestMoveCSA)
@@ -157,7 +156,7 @@ class CSAClient {
                 player?.position(moves: moves)
                 if myColor == PColor.BLACK {
                     // TODO: 時間計算
-                    player?.go(info: {(message: String) in
+                    player?.go(info: {(sp: SearchProgress) in
                     }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
                         self.queue.async {
                             let bestMoveCSA = self.position.makeCSAMove(move: bestMove)

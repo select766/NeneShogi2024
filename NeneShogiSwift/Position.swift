@@ -213,6 +213,20 @@ class Position {
         checkHistory.append(inCheck())
     }
     
+    func copy() -> Position {
+        let dst = Position()
+        dst.board = board
+        dst.hand = hand
+        dst.sideToMove = sideToMove
+        dst.gamePly = gamePly
+        dst.originSFEN = originSFEN
+        dst.hashHistory = hashHistory
+        dst.checkHistory = checkHistory
+        dst.moveStack = moveStack
+        dst.undoStack = undoStack
+        return dst
+    }
+    
     func setHirate() {
         board = hirateBoard
         hand = hirateHands
@@ -656,10 +670,10 @@ class Position {
     func _isNyugyokuAsSente(minPoint: Int) -> Bool {
         var bkSq = Square(0) // black kingの位置
         for sq in 0..<Square.SQ_NB {
-           if board[sq] == Piece.B_KING {
-               bkSq = Square(sq)
-               break
-           }
+            if board[sq] == Piece.B_KING {
+                bkSq = Square(sq)
+                break
+            }
         }
         if bkSq.rank >= 3 {
             // 2. 敵陣三段目まで(rank=0,1,2)でないのでダメ
@@ -701,9 +715,9 @@ class Position {
          一 宣言側の手番である。
          二 宣言側の玉が敵陣三段目以内に入っている。
          三 宣言側が、大駒５点小駒１点で計算して
-          ・先手の場合２８点以上の持点がある。
-          ・後手の場合２７点以上の持点がある。
-          ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒
+         ・先手の場合２８点以上の持点がある。
+         ・後手の場合２７点以上の持点がある。
+         ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒
          のみである。
          四 宣言側の敵陣三段目以内の駒は、玉を除いて１０枚以上存在する。
          五 宣言側の玉に王手がかかっていない。
@@ -1086,6 +1100,60 @@ class Position {
         return input
     }
     
+    // 現局面に対するmoveをDetailedMoveに変換する
+    func makeDetailedMove(move: Move) -> DetailedMove {
+        if move.moveFrom == move.moveTo {
+            if move.moveFrom.square == 0 {
+                return DetailedMove.makeResign(sideToMode: sideToMove)
+            } else if move.moveFrom.square == 1 {
+                return DetailedMove.makeWin(sideToMode: sideToMove)
+            }
+        }
+        if move.isDrop {
+            return DetailedMove.makeMoveDrop(moveTo: move.moveTo, sideToMove: sideToMove, moveFromPieceType: move.moveDroppedPiece)
+        } else {
+            let moveFromPieceType = board[move.moveFrom.square].toPieceType()
+            return DetailedMove.makeMove(moveFrom: move.moveFrom, moveTo: move.moveTo, sideToMove: sideToMove, moveFromPieceType: moveFromPieceType, isPromote: move.isPromote)
+        }
+    }
+    
+    func toPrintString() -> String {
+        var s = ""
+        s += "  ９　８　７　６　５　４　３　２　１\n"
+        for rank in 0..<9 {
+            for file in (0..<9).reversed() {
+                let piece = board[Square.fromFileRank(file: file, rank: rank).square]
+                if piece.isExist() {
+                    if piece.isColor(color: PColor.BLACK) {
+                        s += "Λ\(_printOneCharFromPieceType[piece.toPieceType()]!)"
+                    } else {
+                        s += "Ｖ\(_printOneCharFromPieceType[piece.toPieceType()]!)"
+                    }
+                } else {
+                    s += "・　"
+                }
+            }
+            s += " \(moveRankForPrint[rank])"
+            s += "\n"
+        }
+        s += sideToMove == PColor.BLACK ? "先手番\n" : "後手番\n"
+        for teban in 0..<2 {
+            let handOfTeban = hand[teban]
+            s += "\(teban == 0 ? "先" : "後")手持駒 "
+            for handOfs in 0..<handOfTeban.count {
+                let handCount = handOfTeban[handOfs]
+                if handCount > 0 {
+                    s += "\(_printOneCharFromPieceType[Piece.PIECE_HAND_ZERO + handOfs]!)"
+                    if handCount > 1 {
+                        s += "\(handCount)"
+                    }
+                }
+            }
+            s += "\n"
+        }
+        return s
+    }
+    
     func getDNNMoveLabel(move: Move) -> Int {
         var moveTo = move.moveTo
         if sideToMove == PColor.WHITE {
@@ -1132,11 +1200,11 @@ class Position {
                     ch = 7
                 }
             }
-
+            
             if move.isPromote {
                 ch += 10
             }
-
+            
             return ch * 81 + moveTo.square
         }
     }

@@ -22,7 +22,7 @@ class RandomPlayer: PlayerProtocol {
         position.setPosition(moves: moves)
     }
     
-    func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         let moves = position.generateMoveList()
         let bestMove: Move

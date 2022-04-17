@@ -53,7 +53,7 @@ class NNPlayerBase: PlayerProtocol {
         return cpInt
     }
     
-    func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         fatalError()
     }

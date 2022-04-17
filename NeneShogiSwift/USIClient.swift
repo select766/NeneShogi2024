@@ -167,9 +167,15 @@ class USIClient {
         goRunning = true
         // ponderが終わってから、positionを設定する
         player.position(positionArg: lastPositionArg!)
-        player.go(info: {(message: String) in
+        player.go(info: {(sp: SearchProgress) in
             self.queue.async {
-                self.sendUSI(message: message)
+                // "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
+                var usiInfo = "info depth \(sp.pv.count)  score cp \(sp.scoreCp) pv"
+                for dm in sp.pv {
+                    usiInfo += " \(dm.toUSIString())"
+                }
+                self.sendUSI(message: usiInfo)
+                self.matchManager.updateSearchProgress(searchProgress: sp)
             }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
             self.queue.async {
@@ -201,10 +207,10 @@ class USIClient {
         }
         player.position(positionArg: nextPosition)
         let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
-        player.go(info: {(message: String) in
-            self.queue.async {
-                self.sendUSI(message: message)
-            }
+        player.go(info: {(sp: SearchProgress) in
+//            self.queue.async {
+//                self.sendUSI(message: message)
+//            }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
             self.queue.async {
                 print("ponder result \(bestMove.toUSIString())")
