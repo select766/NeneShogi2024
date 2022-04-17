@@ -18,6 +18,10 @@ class RandomPlayer: PlayerProtocol {
         position.setUSIPosition(positionArg: positionArg)
     }
     
+    func position(moves: [Move]) {
+        position.setPosition(moves: moves)
+    }
+    
     func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
         // goコマンド
         let moves = position.generateMoveList()

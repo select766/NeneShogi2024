@@ -857,6 +857,14 @@ class Position {
         return sfen
     }
     
+    // 初形からのMoveリストで局面をセットする。
+    func setPosition(moves: [Move]) {
+        setHirate()
+        for move in moves {
+            doMove(move: move)
+        }
+    }
+    
     /**
      USIの"position"コマンドの引数に従って局面をセットする。
      positionArg: "startpos moves 7g7f ..."
@@ -886,6 +894,71 @@ class Position {
                 doMove(move: move)
             }
         }
+    }
+    
+    func parseCSAMove(csaMove: String) -> Move? {
+        // CSA形式の指し手をパースする。
+        // 注意: パース結果は局面依存
+        // %TORYO, %KACHIはパースする。
+        // %CHUDANなど指し手に対応しないものはnilを返す。
+        if csaMove.starts(with: "%") {
+            if csaMove == "%TORYO" {
+                return Move.Resign
+            } else if csaMove == "%KACHI" {
+                return Move.Win
+            } else {
+                return nil
+            }
+        } else {
+            // +7776FU
+            let fromNum = Int(csaMove[csaMove.index(csaMove.startIndex, offsetBy: 1)..<csaMove.index(csaMove.startIndex, offsetBy: 3)])!
+            let toNum = Int(csaMove[csaMove.index(csaMove.startIndex, offsetBy: 3)..<csaMove.index(csaMove.startIndex, offsetBy: 5)])!
+            let toPieceStr = csaMove[csaMove.index(csaMove.startIndex, offsetBy: 5)..<csaMove.index(csaMove.startIndex, offsetBy: 7)]
+            let toSq = Square.fromFileRank(file: toNum / 10 - 1, rank: toNum % 10 - 1)
+            guard let toPieceType = _pieceTypeFromCSAChar[String(toPieceStr)] else {
+                return nil
+            }
+            if fromNum == 0 {
+                // 駒打ち
+                return Move.makeMoveDrop(moveDroppedPiece: toPieceType, moveTo: toSq)
+            } else {
+                // 駒の移動
+                let fromSq = Square.fromFileRank(file: fromNum / 10 - 1, rank: fromNum % 10 - 1)
+                let fromPiece = board[fromSq.square]
+                let promote = fromPiece.toPieceType() != toPieceType
+                return Move.makeMove(moveFrom: fromSq, moveTo: toSq, isPromote: promote)
+            }
+        }
+    }
+    
+    func makeCSAMove(move: Move) -> String {
+        if move.moveFrom == move.moveTo {
+            if move.moveFrom.square == 0 {
+                return "%TORYO"
+            } else if move.moveFrom.square == 1 {
+                return "%KACHI"
+            }
+        }
+        var csaMove = sideToMove == PColor.BLACK ? "+" : "-"
+        let moveTo = String(move.moveTo.file + 1) + String(move.moveTo.rank + 1)
+        if move.isDrop {
+            csaMove += "00"
+            csaMove += moveTo
+            csaMove += _csaCharFromPieceType[move.moveDroppedPiece]!
+        } else {
+            let moveFrom = String(move.moveFrom.file + 1) + String(move.moveFrom.rank + 1)
+            let fromPieceType = board[move.moveFrom.square].toPieceType()
+            let toPieceType: Int
+            if move.isPromote {
+                toPieceType = fromPieceType + Piece.PIECE_PROMOTE
+            } else {
+                toPieceType = fromPieceType
+            }
+            csaMove += moveFrom
+            csaMove += moveTo
+            csaMove += _csaCharFromPieceType[toPieceType]!
+        }
+        return csaMove
     }
     
     func getDNNInput() -> [Float32] {

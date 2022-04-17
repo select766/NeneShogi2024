@@ -9,6 +9,13 @@ let _pieceFromChar = [
     "+b": Piece.W_HORSE, "+r": Piece.W_DRAGON
 ]
 let _charFromPiece = Dictionary(uniqueKeysWithValues: _pieceFromChar.map({key, value in (value.piece, key)}))
+let _pieceTypeFromCSAChar = [
+    "FU": Piece.PAWN, "KY": Piece.LANCE, "KE": Piece.KNIGHT, "GI": Piece.SILVER,
+    "KI": Piece.GOLD, "KA": Piece.BISHOP, "HI": Piece.ROOK, "OU": Piece.KING,
+    "TO": Piece.PRO_PAWN, "NY": Piece.PRO_LANCE, "NK": Piece.PRO_KNIGHT, "NG": Piece.PRO_SILVER,
+    "UM": Piece.HORSE, "RY": Piece.DRAGON,
+]
+let _csaCharFromPieceType = Dictionary(uniqueKeysWithValues: _pieceTypeFromCSAChar.map({key, value in (value, key)}))
 
 struct Piece: Equatable {
     let piece: Int
@@ -40,6 +47,11 @@ struct Piece: Equatable {
     
     static func fromPieceString(pieceString: String) -> Piece? {
         return _pieceFromChar[pieceString]
+    }
+    
+    func toPieceType() -> Int {
+        // 手番に関係ない駒の種類（成りを含む）
+        return piece % Piece.PIECE_WHITE
     }
     
     static let PAWN = 1  // 歩

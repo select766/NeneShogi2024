@@ -9,6 +9,7 @@ protocol PlayerProtocol {
     func isReady(callback: @escaping () -> Void)
     func usiNewGame()
     func position(positionArg: String)
+    func position(moves: [Move])
     func go(info: @escaping (String) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void)
     func stop()
 }

@@ -27,6 +27,10 @@ class NNPlayerBase: PlayerProtocol {
         position.setUSIPosition(positionArg: positionArg)
     }
     
+    func position(moves: [Move]) {
+        position.setPosition(moves: moves)
+    }
+    
     func winRateToCp(winrate: Float)-> Int {
         let cp = logf(winrate / (1.0 - winrate)) * 600.0
         // 極端な値をInt()でキャストすると例外発生

@@ -9,14 +9,29 @@ class CSAClient {
     var recvBuffer: Data = Data()
     var player: PlayerProtocol?
     var myColor: PColor?
+    var moves: [Move]
+    var position: Position
+    var state = "init"
 
     init(matchManager: MatchManager, csaServerIpAddress: String) {
         self.matchManager = matchManager // TODO: 循環参照回避
         queue = DispatchQueue(label: "csaClient")
         self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(csaServerIpAddress), port: NWEndpoint.Port(4081))
+        self.moves = []
+        self.position = Position()
     }
     
     func start() {
+        switch playerClass {
+        case "Random":
+            self.player = RandomPlayer()
+        case "Policy":
+            self.player = PolicyPlayer()
+        case "MCTS":
+            self.player = MCTSPlayer()
+        default:
+            fatalError("Unknown player selection")
+        }
         self.matchManager.displayMessage("connecting to CSA server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
@@ -75,6 +90,7 @@ class CSAClient {
     
     func handleCSACommand(command: String) {
         self.matchManager.displayMessage("CSA recv: '\(command)'")
+        print("recv: '\(command)'")
         if command.starts(with: "Your_Turn") {
             if command == "Your_Turn:+" {
                 myColor = PColor.BLACK
@@ -84,22 +100,75 @@ class CSAClient {
                 fatalError("Unknown turn")
             }
         } else if command.starts(with: "END Game_Summary") {
-            self.sendCSA(message: "AGREE")
+            self.player?.isReady(callback: {
+                self.queue.async {
+                    self.sendCSA(message: "AGREE")
+                }
+            })
         } else if command.starts(with: "START") {
+            player?.usiNewGame()
+            state = "playing"
+            moves = []
+            position.setHirate()
             if myColor == PColor.BLACK {
                 // 初手
-                self.sendCSA(message: "+7776FU")
+                player?.position(moves: moves)
+                // TODO: 時間計算
+                player?.go(info: {(message: String) in
+                }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
+                    self.queue.async {
+                        let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                        self.sendCSA(message: bestMoveCSA)
+                    }
+                })
             }
-        } else if command.starts(with: "+") {
-            // 先手の手
-            if myColor == PColor.WHITE {
-                self.sendCSA(message: "%TORYO")
+        } else if state == "playing" && command.starts(with: "+") {
+            if let move = position.parseCSAMove(csaMove: command) {
+                print("parsed move: \(move.toUSIString())")
+                if move == Move.Resign || move == Move.Win {
+                    return
+                }
+                moves.append(move)
+                position.doMove(move: move)
+                
+                player?.position(moves: moves)
+                // 先手の手
+                if myColor == PColor.WHITE {
+                    // TODO: 時間計算
+                    player?.go(info: {(message: String) in
+                    }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
+                        self.queue.async {
+                            let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                            self.sendCSA(message: bestMoveCSA)
+                        }
+                    })
+                }
             }
-        } else if command.starts(with: "-") {
+        } else if state == "playing" && command.starts(with: "-") {
             // 後手の手
-            if myColor == PColor.BLACK {
-                self.sendCSA(message: "%TORYO")
+            if let move = position.parseCSAMove(csaMove: command) {
+                print("parsed move: \(move.toUSIString())")
+                if move == Move.Resign || move == Move.Win {
+                    return
+                }
+                moves.append(move)
+                position.doMove(move: move)
+                
+                player?.position(moves: moves)
+                if myColor == PColor.BLACK {
+                    // TODO: 時間計算
+                    player?.go(info: {(message: String) in
+                    }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
+                        self.queue.async {
+                            let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                            self.sendCSA(message: bestMoveCSA)
+                        }
+                    })
+                }
             }
+        } else if ["#WIN", "#LOSE", "#DRAW"].contains(command) {
+            // これを送るとサーバから切断される
+            self.sendCSA(message: "LOGOUT")
         }
     }
     

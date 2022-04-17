@@ -3,7 +3,8 @@ struct Square: Equatable {
     let square: Int
     init(_ square: Int) {
 #if DEBUG
-        if (square < 0 || square >= Square.SQ_NB) {
+        if (square < 0 || square > Square.SQ_NB) {
+            // SQ_NBはdropの移動元として現在許容している
             fatalError("square is out of range")
         }
 #endif
