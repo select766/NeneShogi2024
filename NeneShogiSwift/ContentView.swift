@@ -1,6 +1,6 @@
 import SwiftUI
 
-let userDefaultsCSAServerIpAddressKey = "csaServerIpAddress"
+let userDefaultsCSAConfigSaveKey = "csaConfigSave"
 let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 
 struct MoveHistoryItem: Identifiable {
@@ -16,6 +16,33 @@ struct CommunicationHistoryDisplayItem: Identifiable {
     let displayString: String
 }
 
+struct CSAConfigSave: Codable {
+    var configs: [String: CSAConfig]
+    var lastUsedConfig: String?
+}
+
+struct CSAConfigSaveListItem: Identifiable {
+    let id: String
+    let name: String
+}
+
+func loadCSAConfigSave() -> CSAConfigSave? {
+    let jsonDecoder = JSONDecoder()
+    guard let data = UserDefaults.standard.data(forKey: userDefaultsCSAConfigSaveKey),
+          let s = try? jsonDecoder.decode(CSAConfigSave.self, from: data) else {
+        return nil
+    }
+    return s
+}
+
+func saveCSAConfigSave(csaConfigSave: CSAConfigSave) {
+    let jsonEncoder = JSONEncoder()
+    guard let data = try? jsonEncoder.encode(csaConfigSave) else {
+        return
+    }
+    UserDefaults.standard.set(data, forKey: userDefaultsCSAConfigSaveKey)
+}
+
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
@@ -26,7 +53,50 @@ struct ContentView: View {
     @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
-    @State var csaServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsCSAServerIpAddressKey) ?? "127.0.0.1"
+    @State var csaConfigSave: CSAConfigSave
+    @State var csaConfigSaveList: [CSAConfigSaveListItem]
+    @State var csaConfigSelected: String
+    @State var csaConfigName: String
+    @State var csaServerIpAddress: String
+    @State var csaServerPort: String
+    @State var csaReconnect: Bool
+    @State var csaLoginName: String
+    @State var csaLoginPassword: String
+    @State var csaPonder: Bool
+    @State var csaTimeTotalSec: String
+    @State var csaTimeIncrementSec: String
+    @State var csaShowLoginPassword: Bool = false
+    
+    init() {
+        let csaConfigSave = loadCSAConfigSave() ?? CSAConfigSave(configs: [:], lastUsedConfig: nil)
+        csaConfigSaveList =  csaConfigSave.configs.keys.map { key
+            in
+            CSAConfigSaveListItem(id: key, name: key)
+        }
+        self.csaConfigSave = csaConfigSave
+        csaConfigName = csaConfigSave.lastUsedConfig ?? ""
+        if let lastUsedConfig = csaConfigSave.lastUsedConfig != nil ? csaConfigSave.configs[csaConfigSave.lastUsedConfig!] : nil {
+            csaConfigSelected = csaConfigSave.lastUsedConfig!
+            csaServerIpAddress = lastUsedConfig.csaServerIpAddress
+            csaServerPort = String(lastUsedConfig.csaServerPort)
+            csaReconnect = lastUsedConfig.reconnect
+            csaLoginName = lastUsedConfig.loginName
+            csaLoginPassword = lastUsedConfig.loginPassword
+            csaPonder = lastUsedConfig.ponder
+            csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
+            csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
+        } else {
+            csaConfigSelected = ""
+            csaServerIpAddress = "127.0.0.1"
+            csaServerPort = "4081"
+            csaReconnect = false
+            csaLoginName = "nene"
+            csaLoginPassword = "test-300-10F"
+            csaPonder = true
+            csaTimeTotalSec = "300"
+            csaTimeIncrementSec = "10"
+        }
+    }
     
     func start(serverType: String) {
         if matchManager != nil {
@@ -67,14 +137,11 @@ struct ContentView: View {
             self.searchProgress = searchProgress
         }})
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
-        UserDefaults.standard.set(csaServerIpAddress, forKey: userDefaultsCSAServerIpAddressKey)
         matchManager = MatchManager(shogiUIInterface: shogiUIInterface)
         if serverType == "USI" {
             matchManager?.startUSI(usiConfig: USIConfig(usiServerIpAddress: usiServerIpAddress, usiServerPort: 8090, ponder: true))
         } else if serverType == "CSA" {
-            // TODO: 時間指定UI
-            // TODO: ponder可否
-            matchManager?.startCSA(csaConfig: CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: 4081, reconnect: true, loginName: "nene", loginPassword: "test-300-10F", ponder: true, timeTotalSec: 300.0, timeIncrementSec: 10.0))
+            matchManager?.startCSA(csaConfig: formToCSAConfig())
         }
     }
     
@@ -155,6 +222,27 @@ struct ContentView: View {
         }
     }
     
+    func formToCSAConfig() -> CSAConfig {
+        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, timeTotalSec: Double(csaTimeTotalSec) ?? 300.0, timeIncrementSec: Double(csaTimeIncrementSec) ?? 10.0)
+    }
+    
+    func onStartCSAClick() {
+        // 最後に使用したプリセット名のみ更新
+        csaConfigSave.lastUsedConfig = csaConfigName
+        saveCSAConfigSave(csaConfigSave: csaConfigSave)
+        start(serverType: "CSA")
+    }
+    
+    func onSaveCSAConfigClick() {
+        csaConfigSave.configs[csaConfigName] = formToCSAConfig()
+        saveCSAConfigSave(csaConfigSave: csaConfigSave)
+    }
+    
+    func onDeleteCSAConfigClick() {
+        csaConfigSave.configs.removeValue(forKey: csaConfigName)
+        saveCSAConfigSave(csaConfigSave: csaConfigSave)
+    }
+    
     var body: some View {
         Group {
             if let matchStatus = matchStatus {
@@ -198,24 +286,102 @@ struct ContentView: View {
                 VStack {
                     Text(latestMessage)
                         .padding()
-                    Button(action: {
-                        start(serverType: "USI")
-                    }) {
-                        Text("Start USI")
+                    VStack {
+                        Text("USI client mode")
+                        Button(action: {
+                            start(serverType: "USI")
+                        }) {
+                            Text("Start USI")
+                        }
+                        TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 20.0)
                     }.padding()
-                    TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 50.0).padding()
-                    Button(action: {
-                        start(serverType: "CSA")
-                    }) {
-                        Text("Start CSA")
+                    VStack {
+                        Text("CSA client mode")
+                        TextField("Config name", text: $csaConfigName).frame(width: 100.0, height: 20.0)
+                        Group {
+                            HStack {
+                                Text("IP")
+                                TextField("IP", text: $csaServerIpAddress).frame(width: 100.0, height: 20.0)
+                            }
+                            HStack {
+                                Text("Port")
+                                TextField("Port", text: $csaServerPort).frame(width: 40.0, height: 20.0)
+                            }
+                            HStack {
+                                Toggle("Reconnect", isOn: $csaReconnect).frame(width: 200.0, height: 20.0)
+                            }
+                        }
+                        Group {
+                            HStack {
+                                Text("Login name")
+                                TextField("Login name", text: $csaLoginName).frame(width: 200.0, height: 20.0)
+                            }
+                            HStack {
+                                Text("Login password")
+                                Group {
+                                    if csaShowLoginPassword {
+                                        TextField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
+                                        
+                                    } else {
+                                        SecureField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
+                                    }
+                                }
+                            }
+                            HStack {
+                                Toggle("Show password", isOn: $csaShowLoginPassword).frame(width: 200.0, height: 20.0)
+                            }
+                        }
+                        Group {
+                            HStack {
+                                Toggle("Ponder", isOn: $csaPonder).frame(width: 200.0, height: 20.0)
+                            }
+                            HStack {
+                                Text("Total time")
+                                TextField("", text: $csaTimeTotalSec).frame(width: 100.0, height: 20.0)
+                            }
+                            HStack {
+                                Text("Increment time")
+                                TextField("", text: $csaTimeIncrementSec).frame(width: 100.0, height: 20.0)
+                            }
+                        }
+                        HStack {
+                            Button(action: onSaveCSAConfigClick) {
+                                Text("Save")
+                            }
+                            Button(action: onDeleteCSAConfigClick) {
+                                Text("Delete")
+                            }
+                            Button(action: onStartCSAClick) {
+                                Text("Start CSA")
+                            }
+                        }
+                        Picker(selection: $csaConfigSelected, label: Text("Saved servers")) {
+                            ForEach(csaConfigSaveList) {
+                                saveListItem in Text(saveListItem.name).tag(saveListItem.id)
+                            }
+                        }.onChange(of: csaConfigSelected) {
+                            selectedKey in
+                            if let lastUsedConfig = csaConfigSave.configs[selectedKey] {
+                            csaConfigName = selectedKey
+                            csaServerIpAddress = lastUsedConfig.csaServerIpAddress
+                            csaServerPort = String(lastUsedConfig.csaServerPort)
+                            csaReconnect = lastUsedConfig.reconnect
+                            csaLoginName = lastUsedConfig.loginName
+                            csaLoginPassword = lastUsedConfig.loginPassword
+                            csaPonder = lastUsedConfig.ponder
+                            csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
+                            csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
+                            }
+                        }
                     }.padding()
-                    TextField("CSA IP", text: $csaServerIpAddress).frame(width: 100.0, height: 50.0).padding()
-                    Button(action: testPosition) {
-                        Text("Test position")
-                    }.padding()
-                    Button(action: testDNNInput) {
-                        Text("Test dnn input")
-                    }.padding()
+                    HStack {
+                        Button(action: testPosition) {
+                            Text("Test position")
+                        }.padding()
+                        Button(action: testDNNInput) {
+                            Text("Test dnn input")
+                        }.padding()
+                    }
                     Text(testProgress)
                         .padding()
                 }

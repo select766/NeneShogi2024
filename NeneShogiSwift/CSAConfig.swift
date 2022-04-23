@@ -1,5 +1,5 @@
 // CSAプロトコルの接続情報
-struct CSAConfig {
+struct CSAConfig: Codable {
     var csaServerIpAddress: String
     var csaServerPort: UInt16
     var reconnect: Bool
