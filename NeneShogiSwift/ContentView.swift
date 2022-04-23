@@ -21,7 +21,8 @@ struct ContentView: View {
     @State var matchManager: MatchManager?
     @State var matchStatus: MatchStatus? = nil
     @State var moveHistory: [MoveHistoryItem] = []
-    @State var commuicationHistory: [CommunicationHistoryDisplayItem] = []
+    @State var communicationHistory: [CommunicationItem] = []
+    @State var commuicationHistoryDisplay: [CommunicationHistoryDisplayItem] = []
     @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
@@ -34,6 +35,22 @@ struct ContentView: View {
         let shogiUIInterface = ShogiUIInterface(displayMessage: {message in DispatchQueue.main.async {
             self.latestMessage = message
         }
+        }, pushCommunicaionHistory: { communicationItem in
+            self.communicationHistory.append(communicationItem)
+            
+            var cis: [CommunicationHistoryDisplayItem] = []
+            for i in max(0, self.communicationHistory.count - 100)..<self.communicationHistory.count {
+                let ci = self.communicationHistory[i]
+                let prefix: String
+                switch ci.direction {
+                case .recv:
+                    prefix = "< "
+                case .send:
+                    prefix = "> "
+                }
+                cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
+            }
+            commuicationHistoryDisplay = cis
         }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
             self.matchStatus = matchStatus
             var mh: [MoveHistoryItem] = []
@@ -46,20 +63,6 @@ struct ContentView: View {
                                           totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color])))
             }
             self.moveHistory = mh
-            
-            var cis: [CommunicationHistoryDisplayItem] = []
-            for i in max(0, matchStatus.communicationHistory.count - 100)..<matchStatus.communicationHistory.count {
-                let ci = matchStatus.communicationHistory[i]
-                let prefix: String
-                switch ci.direction {
-                case .recv:
-                    prefix = "< "
-                case .send:
-                    prefix = "> "
-                }
-                cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
-            }
-            commuicationHistory = cis
         }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
             self.searchProgress = searchProgress
         }})
@@ -181,10 +184,10 @@ struct ContentView: View {
                         ScrollViewReader {
                             proxy in
                             VStack {
-                                ForEach(commuicationHistory) {cItem in
+                                ForEach(commuicationHistoryDisplay) {cItem in
                                     Text(cItem.displayString).id(cItem.id)
                                 }
-                            }.onChange(of: (self.commuicationHistory.last?.id ?? 0), perform: {
+                            }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
                                 value in proxy.scrollTo(value, anchor: .bottom)
                             })
                         }

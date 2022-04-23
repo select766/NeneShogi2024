@@ -1,11 +1,22 @@
 import Foundation
 
+struct CommunicationItem {
+    enum Direction {
+        case send
+        case recv
+    }
+    let direction: Direction
+    let message: String
+}
+
 class ShogiUIInterface {
     var displayMessage: (String) -> Void
     var updateSearchProgress: (SearchProgress) -> Void
     var updateMatchStatus: (MatchStatus) -> Void
-    init(displayMessage: @escaping (String) -> Void, updateMatchStatus: @escaping (MatchStatus) -> Void, updateSearchProgress: @escaping (SearchProgress) -> Void) {
+    var pushCommunicationHistory: (CommunicationItem) -> Void
+    init(displayMessage: @escaping (String) -> Void, pushCommunicaionHistory: @escaping (CommunicationItem) -> Void, updateMatchStatus: @escaping (MatchStatus) -> Void, updateSearchProgress: @escaping (SearchProgress) -> Void) {
         self.displayMessage = displayMessage
+        self.pushCommunicationHistory = pushCommunicaionHistory
         self.updateMatchStatus = updateMatchStatus
         self.updateSearchProgress = updateSearchProgress
     }
@@ -40,5 +51,9 @@ class MatchManager {
     
     func updateSearchProgress(searchProgress: SearchProgress) {
         shogiUIInterface.updateSearchProgress(searchProgress)
+    }
+    
+    func pushCommunicationHistory(communicationItem: CommunicationItem) {
+        shogiUIInterface.pushCommunicationHistory(communicationItem)
     }
 }
