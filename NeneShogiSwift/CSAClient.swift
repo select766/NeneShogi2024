@@ -20,6 +20,7 @@ class CSAClient {
     var state = CSAClientState.waiting
     var myRemainingTime: Double = 0.0
     var moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+    var communicationHistory: [CommunicationItem] = []
     var lastSendTime: Date = Date()
     var goRunning = false
     
@@ -92,6 +93,7 @@ class CSAClient {
                                 lineEndPos -= 1
                             }
                             if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
+                                self.communicationHistory.append(CommunicationItem(direction: .recv, message: commandStr))
                                 self.handleCSACommand(command: commandStr)
                             } else {
                                 print("Cannot decode CSA data as utf-8")
@@ -219,7 +221,7 @@ class CSAClient {
             }
         }
         
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(position: position, moveHistory: moveHistory))
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(position: position, moveHistory: moveHistory, communicationHistory: communicationHistory))
     }
     
     func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
@@ -274,9 +276,9 @@ class CSAClient {
         player.position(moves: posaftermove)
         let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
         player.go(info: {(sp: SearchProgress) in
-//            self.queue.async {
-//                self.sendUSI(message: message)
-//            }
+            //            self.queue.async {
+            //                self.sendUSI(message: message)
+            //            }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
             self.queue.async {
                 print("ponder result \(bestMove.toUSIString())")
@@ -299,6 +301,11 @@ class CSAClient {
     }
     
     func _send(messageWithNewline: String) {
+        for line in messageWithNewline.components(separatedBy: "\n") {
+            if line.count > 0 {
+                communicationHistory.append(CommunicationItem(direction: .send, message: line))
+            }
+        }
         lastSendTime = Date()
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {

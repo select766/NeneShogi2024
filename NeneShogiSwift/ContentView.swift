@@ -11,11 +11,17 @@ struct MoveHistoryItem: Identifiable {
     let totalUsedTime: Int
 }
 
+struct CommunicationHistoryDisplayItem: Identifiable {
+    let id: Int
+    let displayString: String
+}
+
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
     @State var matchStatus: MatchStatus? = nil
     @State var moveHistory: [MoveHistoryItem] = []
+    @State var commuicationHistory: [CommunicationHistoryDisplayItem] = []
     @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
@@ -40,6 +46,20 @@ struct ContentView: View {
                                           totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color])))
             }
             self.moveHistory = mh
+            
+            var cis: [CommunicationHistoryDisplayItem] = []
+            for i in max(0, matchStatus.communicationHistory.count - 100)..<matchStatus.communicationHistory.count {
+                let ci = matchStatus.communicationHistory[i]
+                let prefix: String
+                switch ci.direction {
+                case .recv:
+                    prefix = "< "
+                case .send:
+                    prefix = "> "
+                }
+                cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
+            }
+            commuicationHistory = cis
         }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
             self.searchProgress = searchProgress
         }})
@@ -150,9 +170,22 @@ struct ContentView: View {
                                 }
                             }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
                                 value in withAnimation {
-                                    print("move \(value)")
-                                    proxy.scrollTo(value, anchor: .center)
+                                    proxy.scrollTo(value, anchor: .bottom)
                                 }
+                            })
+                        }
+                        
+                    }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                    
+                    ScrollView(.vertical, showsIndicators: true) {
+                        ScrollViewReader {
+                            proxy in
+                            VStack {
+                                ForEach(commuicationHistory) {cItem in
+                                    Text(cItem.displayString).id(cItem.id)
+                                }
+                            }.onChange(of: (self.commuicationHistory.last?.id ?? 0), perform: {
+                                value in proxy.scrollTo(value, anchor: .bottom)
                             })
                         }
                         
