@@ -194,7 +194,7 @@ class CSAClient {
             } else {
                 print("parse move failed")
             }
-        } else if ["#WIN", "#LOSE", "#DRAW"].contains(command) {
+        } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN"].contains(command) {
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
             // ponder中に終わる場合があるので一応stopしておく
