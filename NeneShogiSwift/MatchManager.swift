@@ -3,8 +3,10 @@ import Foundation
 class ShogiUIInterface {
     var displayMessage: (String) -> Void
     var updateSearchProgress: (SearchProgress) -> Void
-    init(displayMessage: @escaping (String) -> Void, updateSearchProgress: @escaping (SearchProgress) -> Void) {
+    var updateMatchStatus: (MatchStatus) -> Void
+    init(displayMessage: @escaping (String) -> Void, updateMatchStatus: @escaping (MatchStatus) -> Void, updateSearchProgress: @escaping (SearchProgress) -> Void) {
         self.displayMessage = displayMessage
+        self.updateMatchStatus = updateMatchStatus
         self.updateSearchProgress = updateSearchProgress
     }
 }
@@ -30,6 +32,10 @@ class MatchManager {
     
     func displayMessage(_ message: String) {
         shogiUIInterface.displayMessage(message)
+    }
+    
+    func updateMatchStatus(matchStatus: MatchStatus) {
+        shogiUIInterface.updateMatchStatus(matchStatus)
     }
     
     func updateSearchProgress(searchProgress: SearchProgress) {

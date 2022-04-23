@@ -15,6 +15,8 @@ class USIClient {
     var goRunning = false
     var lastPositionArg: String? = nil
     var position: Position // 手番把握のためにAIとは別に必要
+    var moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+
     init(matchManager: MatchManager, usiConfig: USIConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
         self.usiConfig = usiConfig
@@ -110,12 +112,27 @@ class USIClient {
             break
         case "usinewgame":
             self.player?.usiNewGame()
+            moveHistory = []
             break
         case "position":
             if let commandArg = commandArg {
                 position.setUSIPosition(positionArg: commandArg)
                 // ponderが終わってから、positionを設定するためgoの内部で設定
                 lastPositionArg = commandArg
+                
+                // 盤面表示の更新
+                // 自分が指した手は直接は表示できない(相手が指した後のpositionコマンドを待つ必要がある)
+                let positionForDetailedMove = Position()
+                positionForDetailedMove.setSFEN(sfen: position.originSFEN)
+                var mh: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+                for move in position.moveStack {
+                    let dm = positionForDetailedMove.makeDetailedMove(move: move)
+                    // 消費時間は含まれていない
+                    mh.append((detailedMove: dm, usedTime: nil))
+                    positionForDetailedMove.doMove(move: move)
+                }
+                moveHistory = mh
+                matchManager.updateMatchStatus(matchStatus: MatchStatus(position: positionForDetailedMove, moveHistory: moveHistory))
             }
             break
         case "go":

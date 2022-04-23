@@ -156,7 +156,6 @@ class CSAClient {
             moveHistory = []
             position.setHirate()
             mayneedgo = true
-
         } else if command.starts(with: "+") || command.starts(with: "-") {
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
@@ -194,6 +193,11 @@ class CSAClient {
             } else {
                 print("parse move failed")
             }
+        } else if command == "%TORYO" {
+            // 消費時間情報はついていない
+            moveHistory.append((detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil))
+        } else if command == "%KACHI" {
+            moveHistory.append((detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN"].contains(command) {
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
@@ -214,6 +218,8 @@ class CSAClient {
                 runGo(thinkingTime: thinkingTime, secondCall: false)
             }
         }
+        
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(position: position, moveHistory: moveHistory))
     }
     
     func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {

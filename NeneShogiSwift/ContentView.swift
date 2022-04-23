@@ -3,9 +3,19 @@ import SwiftUI
 let userDefaultsCSAServerIpAddressKey = "csaServerIpAddress"
 let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 
+struct MoveHistoryItem: Identifiable {
+    let id: Int
+    let tekazu: Int
+    let detailedMove: DetailedMove
+    let usedTime: Int?
+    let totalUsedTime: Int
+}
+
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
+    @State var matchStatus: MatchStatus? = nil
+    @State var moveHistory: [MoveHistoryItem] = []
     @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
@@ -18,7 +28,19 @@ struct ContentView: View {
         let shogiUIInterface = ShogiUIInterface(displayMessage: {message in DispatchQueue.main.async {
             self.latestMessage = message
         }
-        }, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
+        }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
+            self.matchStatus = matchStatus
+            var mh: [MoveHistoryItem] = []
+            var totalUsedTimes = [0.0, 0.0]
+            for i in 0..<matchStatus.moveHistory.count {
+                let mi = matchStatus.moveHistory[i]
+                totalUsedTimes[mi.detailedMove.sideToMove.color] += mi.usedTime ?? 0.0
+                mh.append(MoveHistoryItem(id: i,tekazu: i+1,
+                                          detailedMove: mi.detailedMove, usedTime: mi.usedTime != nil ? Int(mi.usedTime!) : nil,
+                                          totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color])))
+            }
+            self.moveHistory = mh
+        }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
             self.searchProgress = searchProgress
         }})
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
@@ -112,14 +134,29 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if let searchProgress = searchProgress {
+            if let matchStatus = matchStatus {
                 VStack {
                     Text(latestMessage)
                         .padding()
-                    Text(searchProgress.rootPosition.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                    Text(matchStatus.position.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                         .padding()
-                    Text(searchProgress.pv.count > 0 ? searchProgress.pv[0].toPrintString() : "-")
-                        .padding()
+                    Text("指し手 消費時間/合計").padding()
+                    ScrollView(.vertical, showsIndicators: true) {
+                        ScrollViewReader {
+                            proxy in
+                            VStack {
+                                ForEach(moveHistory) {moveHistoryItem in
+                                    Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime)").id(moveHistoryItem.id)
+                                }
+                            }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
+                                value in withAnimation {
+                                    print("move \(value)")
+                                    proxy.scrollTo(value, anchor: .center)
+                                }
+                            })
+                        }
+                        
+                    }.frame(maxWidth: .infinity, maxHeight: 120.0)
                 }
             } else {
                 VStack {

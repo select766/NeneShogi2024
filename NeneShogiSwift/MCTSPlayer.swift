@@ -10,7 +10,8 @@ class MCTSPlayer: NNPlayerBase {
     
     var batchSize: Int = 1
     var cPuct: Float = 1.0
-    var nodeLimit = 100000
+    //var nodeLimit = 100000
+    var nodeLimit = 10 // TODO
     // ルートノードの再利用を許可するか
     var reuseRoot = true
     // 現在の思考がponderかどうか
