@@ -11,24 +11,19 @@ class ShogiUIInterface {
 
 class MatchManager {
     let shogiUIInterface: ShogiUIInterface
-    let usiServerIpAddress: String
-    let csaConfig: CSAConfig
     var usiClient: USIClient?
     var csaClient: CSAClient?
     
-    init(shogiUIInterface: ShogiUIInterface, usiServerIpAddress: String,
-         csaConfig: CSAConfig) {
+    init(shogiUIInterface: ShogiUIInterface) {
         self.shogiUIInterface = shogiUIInterface
-        self.usiServerIpAddress = usiServerIpAddress
-        self.csaConfig = csaConfig
     }
     
-    func start() {
-        usiClient = USIClient(matchManager: self, usiServerIpAddress: usiServerIpAddress)
+    func startUSI(usiConfig: USIConfig) {
+        usiClient = USIClient(matchManager: self, usiConfig: usiConfig)
         usiClient?.start()
     }
     
-    func startCSA() {
+    func startCSA(csaConfig: CSAConfig) {
         csaClient = CSAClient(matchManager: self, csaConfig: csaConfig)
         csaClient?.start()
     }

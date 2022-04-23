@@ -23,11 +23,13 @@ struct ContentView: View {
         }})
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
         UserDefaults.standard.set(csaServerIpAddress, forKey: userDefaultsCSAServerIpAddressKey)
-        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress, csaConfig: CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: 4081, reconnect: true, loginName: "nene", loginPassword: "test-300-10F", ponder: true, timeTotalSec: 300.0, timeIncrementSec: 10.0))
+        matchManager = MatchManager(shogiUIInterface: shogiUIInterface)
         if serverType == "USI" {
-            matchManager?.start()
+            matchManager?.startUSI(usiConfig: USIConfig(usiServerIpAddress: usiServerIpAddress, usiServerPort: 8090, ponder: true))
         } else if serverType == "CSA" {
-            matchManager?.startCSA()
+            // TODO: 時間指定UI
+            // TODO: ponder可否
+            matchManager?.startCSA(csaConfig: CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: 4081, reconnect: true, loginName: "nene", loginPassword: "test-300-10F", ponder: true, timeTotalSec: 300.0, timeIncrementSec: 10.0))
         }
     }
     

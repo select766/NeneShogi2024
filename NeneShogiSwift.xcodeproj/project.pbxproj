@@ -34,6 +34,7 @@
 		AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC86E280C18B300517C11 /* SearchProgress.swift */; };
 		AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC870280C192F00517C11 /* DetailedMove.swift */; };
 		AACEC873281394AF00517C11 /* CSAConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC872281394AF00517C11 /* CSAConfig.swift */; };
+		AACEC8752813D72000517C11 /* USIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC8742813D72000517C11 /* USIConfig.swift */; };
 		AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E6F27EEB607007BF351 /* SearchBench.swift */; };
 		AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7127EECB83007BF351 /* CSAClient.swift */; };
 		AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */; };
@@ -90,6 +91,7 @@
 		AACEC86E280C18B300517C11 /* SearchProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchProgress.swift; sourceTree = "<group>"; };
 		AACEC870280C192F00517C11 /* DetailedMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedMove.swift; sourceTree = "<group>"; };
 		AACEC872281394AF00517C11 /* CSAConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAConfig.swift; sourceTree = "<group>"; };
+		AACEC8742813D72000517C11 /* USIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIConfig.swift; sourceTree = "<group>"; };
 		AAF48E6F27EEB607007BF351 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		AAF48E7127EECB83007BF351 /* CSAClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAClient.swift; sourceTree = "<group>"; };
 		AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet15x224SwishBatch.mlmodel; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 				AA90C4DE27B8BEDD00ED174E /* Preview Content */,
 				AA22E00927BA72BE0075371D /* MatchManager.swift */,
 				AA22E00B27BA73580075371D /* USIClient.swift */,
+				AACEC8742813D72000517C11 /* USIConfig.swift */,
 				AA9C013227C1C5DE00BB71E0 /* Move.swift */,
 				AA9C013827C1CF8E00BB71E0 /* Piece.swift */,
 				AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */,
@@ -347,6 +350,7 @@
 				AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */,
 				AACE1F8527EB26C50099667A /* PolicyPlayer.swift in Sources */,
 				AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */,
+				AACEC8752813D72000517C11 /* USIConfig.swift in Sources */,
 				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
 				AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,

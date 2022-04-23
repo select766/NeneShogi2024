@@ -6,6 +6,7 @@ var playerClass = "MCTS"
 
 class USIClient {
     let matchManager: MatchManager
+    let usiConfig: USIConfig
     var serverEndpoint: NWEndpoint
     var connection: NWConnection?
     let queue: DispatchQueue
@@ -13,12 +14,12 @@ class USIClient {
     var player: PlayerProtocol?
     var goRunning = false
     var lastPositionArg: String? = nil
-    var ponder = true // ponderを許可するかどうか
     var position: Position // 手番把握のためにAIとは別に必要
-    init(matchManager: MatchManager, usiServerIpAddress: String) {
+    init(matchManager: MatchManager, usiConfig: USIConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
+        self.usiConfig = usiConfig
         queue = DispatchQueue(label: "usiClient")
-        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(usiServerIpAddress), port: NWEndpoint.Port(8090))
+        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.usiConfig.usiServerIpAddress), port: NWEndpoint.Port(rawValue: self.usiConfig.usiServerPort)!)
         position = Position()
     }
     
@@ -187,7 +188,7 @@ class USIClient {
     }
     
     func runPonderIfPossible(bestMove: Move) {
-        if !ponder {
+        if !usiConfig.ponder {
             return
         }
         if bestMove.isTerminal {
