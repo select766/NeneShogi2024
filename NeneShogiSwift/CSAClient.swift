@@ -1,7 +1,13 @@
 import Foundation
 import Network
 
+enum CSAClientState {
+    case waiting
+    case game
+}
+
 class CSAClient {
+    let csaConfig: CSAConfig
     let matchManager: MatchManager
     var serverEndpoint: NWEndpoint
     var connection: NWConnection?
@@ -11,17 +17,23 @@ class CSAClient {
     var myColor: PColor?
     var moves: [Move]
     var position: Position
-    var state = "init"
+    var state = CSAClientState.waiting
+    var myRemainingTime: Double = 0.0
+    var moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+    var lastSendTime: Date = Date()
+    var goRunning = false
     
-    init(matchManager: MatchManager, csaServerIpAddress: String) {
+    init(matchManager: MatchManager, csaConfig: CSAConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
+        self.csaConfig = csaConfig
         queue = DispatchQueue(label: "csaClient")
-        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(csaServerIpAddress), port: NWEndpoint.Port(4081))
+        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.csaConfig.csaServerIpAddress), port: NWEndpoint.Port(rawValue: self.csaConfig.csaServerPort)!)
         self.moves = []
         self.position = Position()
     }
     
     func start() {
+        // AIは複数回サーバに接続する場合でも最初の1回だけ
         switch playerClass {
         case "Random":
             self.player = RandomPlayer()
@@ -32,6 +44,12 @@ class CSAClient {
         default:
             fatalError("Unknown player selection")
         }
+        startConnection()
+        setKeepalive()
+    }
+    
+    func startConnection() {
+        self.state = .waiting
         self.matchManager.displayMessage("connecting to CSA server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
@@ -39,12 +57,18 @@ class CSAClient {
             switch newState {
             case .ready:
                 self.matchManager.displayMessage("connected to CSA server")
-                self.sendCSA(message: "LOGIN nene test-300-10F") // TODO 設定可能にする
+                self.sendCSA(message: "LOGIN \(self.csaConfig.loginName) \(self.csaConfig.loginPassword)")
                 self.startRecv()
             case .waiting(let nwError):
                 // ネットワーク構成が変化するまで待つ=事実上の接続失敗
                 // TODO: 接続失敗時のアクション
                 self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
+            case .cancelled:
+                self.connection = nil
+                if self.csaConfig.reconnect {
+                    // LOGOUT送信の直前にサーバ側から切断され、すぐに再接続されると新しい接続に対してLOGOUTを送ってしまうかもしれないので予防的に少し待ってから再接続する
+                    self.queue.asyncAfter(deadline: .now() + 5.0, execute: self.startConnection)
+                }
             default:
                 break
             }
@@ -82,7 +106,9 @@ class CSAClient {
                     self.startRecv()
                 } else {
                     // コネクション切断で発生
+                    print("zero recv")
                     self.matchManager.displayMessage("CSA disconnected")
+                    self.connection?.cancel()
                 }
             }
         })
@@ -91,6 +117,15 @@ class CSAClient {
     func handleCSACommand(command: String) {
         self.matchManager.displayMessage("CSA recv: '\(command)'")
         print("recv: '\(command)'")
+        switch state {
+        case .waiting:
+            _handleCSACommandWaiting(command: command)
+        case .game:
+            _handleCSACommandGame(command: command)
+        }
+    }
+    
+    func _handleCSACommandWaiting(command: String) {
         if command.starts(with: "Your_Turn") {
             if command == "Your_Turn:+" {
                 myColor = PColor.BLACK
@@ -102,78 +137,166 @@ class CSAClient {
         } else if command.starts(with: "END Game_Summary") {
             self.player?.isReady(callback: {
                 self.queue.async {
+                    self.state = .game
+                    self.myRemainingTime = self.csaConfig.timeTotalSec
+                    self.moves = []
+                    self.moveHistory = []
                     self.sendCSA(message: "AGREE")
                 }
             })
-        } else if command.starts(with: "START") {
-            player?.usiNewGame()
-            state = "playing"
-            moves = []
-            position.setHirate()
-            if myColor == PColor.BLACK {
-                // 初手
-                player?.position(moves: moves)
-                // TODO: 時間計算
-                player?.go(info: {(sp: SearchProgress) in
-                }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
-                    self.queue.async {
-                        let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
-                        self.sendCSA(message: bestMoveCSA)
-                    }
-                })
-            }
-        } else if state == "playing" && command.starts(with: "+") {
-            if let move = position.parseCSAMove(csaMove: command) {
-                print("parsed move: \(move.toUSIString())")
-                if move == Move.Resign || move == Move.Win {
-                    return
-                }
-                moves.append(move)
-                position.doMove(move: move)
-                
-                player?.position(moves: moves)
-                // 先手の手
-                if myColor == PColor.WHITE {
-                    // TODO: 時間計算
-                    player?.go(info: {(sp: SearchProgress) in }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
-                        self.queue.async {
-                            let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
-                            self.sendCSA(message: bestMoveCSA)
-                        }
-                    })
-                }
-            }
-        } else if state == "playing" && command.starts(with: "-") {
-            // 後手の手
-            if let move = position.parseCSAMove(csaMove: command) {
-                print("parsed move: \(move.toUSIString())")
-                if move == Move.Resign || move == Move.Win {
-                    return
-                }
-                moves.append(move)
-                position.doMove(move: move)
-                
-                player?.position(moves: moves)
-                if myColor == PColor.BLACK {
-                    // TODO: 時間計算
-                    player?.go(info: {(sp: SearchProgress) in
-                    }, thinkingTime: ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 5.0, fisher: 0.0), callback: {(bestMove: Move) in
-                        self.queue.async {
-                            let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
-                            self.sendCSA(message: bestMoveCSA)
-                        }
-                    })
-                }
-            }
-        } else if ["#WIN", "#LOSE", "#DRAW"].contains(command) {
-            // これを送るとサーバから切断される
-            self.sendCSA(message: "LOGOUT")
         }
     }
     
+    func _handleCSACommandGame(command: String) {
+        var mayneedgo = false
+        if command.starts(with: "START") {
+            // TODO: STARTとAGREE返答時の初期化をどちらかに揃える
+            player?.usiNewGame()
+            moves = []
+            moveHistory = []
+            position.setHirate()
+            mayneedgo = true
+
+        } else if command.starts(with: "+") || command.starts(with: "-") {
+            let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
+            if let move = position.parseCSAMove(csaMove: command) {
+                print("parsed move: \(move.toUSIString())")
+                let detail = position.makeDetailedMove(move: move)
+                if move.isTerminal {
+                    moveHistory.append((detail, nil))
+                } else {
+                    mayneedgo = true
+                    moves.append(move)
+                    position.doMove(move: move)
+                    
+                    // 消費時間の計算
+                    var usedTime: Double? = nil
+                    do {
+                        let regex = try NSRegularExpression(pattern: ",T(\\d+)$")
+                        let matches = regex.matches(in: command, range: NSRange(location: 0, length: command.count))
+                        if matches.count > 0 {
+                            let timeStr = NSString(string: command).substring(with: matches[0].range(at: 1))
+                            if let timeParsed = Double(timeStr) {
+                                usedTime = timeParsed
+                                if moveColor == myColor {
+                                    // 自分の消費時間
+                                    print("I used \(timeParsed) sec")
+                                    myRemainingTime -= timeParsed
+                                }
+                            }
+                        }
+                    } catch {
+                        print("error on extracting time")
+                    }
+                    moveHistory.append((detail, usedTime))
+                    print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
+                }
+            } else {
+                print("parse move failed")
+            }
+        } else if ["#WIN", "#LOSE", "#DRAW"].contains(command) {
+            // これを送るとサーバから切断される
+            // 対局終了時はサーバから自動的に切断される場合もある
+            // ponder中に終わる場合があるので一応stopしておく
+            guard let player = self.player else {
+                fatalError()
+            }
+            player.stop()
+            self.sendCSA(message: "LOGOUT")
+            self.connection?.cancel()
+        }
+        if mayneedgo {
+            if myColor == position.sideToMove {
+                // 自分の手番
+                myRemainingTime += csaConfig.timeIncrementSec
+                // remaining timeに今回手番側回ってきたことによる加算時間は含まない
+                let thinkingTime = ThinkingTime(ponder: false, remaining: myRemainingTime - csaConfig.timeIncrementSec, byoyomi: 0.0, fisher: csaConfig.timeIncrementSec)
+                runGo(thinkingTime: thinkingTime, secondCall: false)
+            }
+        }
+    }
+    
+    func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
+        guard let player = self.player else {
+            fatalError()
+        }
+        // ponderを止める
+        player.stop()
+        if goRunning {
+            if !secondCall {
+                print("waiting last go ends")
+            }
+            queue.asyncAfter(deadline: .now() + 0.01, execute: {
+                self.runGo(thinkingTime: thinkingTime, secondCall: true)
+            })
+            return
+        }
+        goRunning = true
+        // ponderが終わってから、positionを設定する
+        let movesForGo = moves
+        player.position(moves: movesForGo)
+        player.go(info: {(sp: SearchProgress) in
+            self.queue.async {
+                self.matchManager.updateSearchProgress(searchProgress: sp)
+            }
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+            self.queue.async {
+                let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                self.sendCSA(message: bestMoveCSA)
+                self.goRunning = false
+                self.runPonderIfPossible(bestMove: bestMove, movesForGo: movesForGo)
+            }
+        })
+    }
+    
+    func runPonderIfPossible(bestMove: Move, movesForGo: [Move]) {
+        if !csaConfig.ponder {
+            return
+        }
+        if bestMove.isTerminal {
+            return
+        }
+        print("run ponder")
+        guard let player = self.player else {
+            fatalError()
+        }
+        // goで思考した局面+bestMoveで進めた局面で思考
+        // ここでmovesを参照すると、通信タイミングによってbestmove適用前後のどちらか不定となるためまずい
+        goRunning = true
+        var posaftermove = movesForGo
+        posaftermove.append(bestMove)
+        player.position(moves: posaftermove)
+        let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
+        player.go(info: {(sp: SearchProgress) in
+//            self.queue.async {
+//                self.sendUSI(message: message)
+//            }
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+            self.queue.async {
+                print("ponder result \(bestMove.toUSIString())")
+                self.goRunning = false
+            }
+        })
+    }
+    
+    func setKeepalive() {
+        queue.asyncAfter(deadline: .now() + 10.0, execute: keepAlive)
+    }
+    
+    func keepAlive() {
+        // TCP接続維持のために、無送信状態が40秒続いたら空行を送る(30秒未満で送ると反則)
+        if lastSendTime.timeIntervalSinceNow < -40.0 {
+            print("keepalive at \(Date())")
+            _send(messageWithNewline: "\n")
+        }
+        setKeepalive()
+    }
+    
     func _send(messageWithNewline: String) {
+        lastSendTime = Date()
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {
+                print("cannot send", messageWithNewline)
                 print("Error in send", error)
             }
         })

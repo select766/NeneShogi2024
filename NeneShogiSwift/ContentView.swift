@@ -23,7 +23,7 @@ struct ContentView: View {
         }})
         UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
         UserDefaults.standard.set(csaServerIpAddress, forKey: userDefaultsCSAServerIpAddressKey)
-        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress, csaServerIpAddress: csaServerIpAddress)
+        matchManager = MatchManager(shogiUIInterface: shogiUIInterface, usiServerIpAddress: usiServerIpAddress, csaConfig: CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: 4081, reconnect: true, loginName: "nene", loginPassword: "test-300-10F", ponder: true, timeTotalSec: 300.0, timeIncrementSec: 10.0))
         if serverType == "USI" {
             matchManager?.start()
         } else if serverType == "CSA" {

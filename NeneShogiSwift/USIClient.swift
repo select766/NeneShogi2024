@@ -190,7 +190,7 @@ class USIClient {
         if !ponder {
             return
         }
-        if bestMove == Move.Resign {
+        if bestMove.isTerminal {
             return
         }
         print("run ponder")

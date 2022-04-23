@@ -1,10 +1,3 @@
-//
-//  MatchManager.swift
-//  NeneShogiSwift
-//
-//  Created by Masatoshi Hidaka on 2022/02/14.
-//
-
 import Foundation
 
 class ShogiUIInterface {
@@ -19,15 +12,15 @@ class ShogiUIInterface {
 class MatchManager {
     let shogiUIInterface: ShogiUIInterface
     let usiServerIpAddress: String
-    let csaServerIpAddress: String
+    let csaConfig: CSAConfig
     var usiClient: USIClient?
     var csaClient: CSAClient?
     
     init(shogiUIInterface: ShogiUIInterface, usiServerIpAddress: String,
-         csaServerIpAddress: String) {
+         csaConfig: CSAConfig) {
         self.shogiUIInterface = shogiUIInterface
         self.usiServerIpAddress = usiServerIpAddress
-        self.csaServerIpAddress = csaServerIpAddress
+        self.csaConfig = csaConfig
     }
     
     func start() {
@@ -36,7 +29,7 @@ class MatchManager {
     }
     
     func startCSA() {
-        csaClient = CSAClient(matchManager: self, csaServerIpAddress: csaServerIpAddress)
+        csaClient = CSAClient(matchManager: self, csaConfig: csaConfig)
         csaClient?.start()
     }
     

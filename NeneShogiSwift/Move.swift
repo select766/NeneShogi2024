@@ -105,4 +105,11 @@ struct Move: Equatable {
             return s
         }
     }
+    
+    // ゲームを終了させるMoveかどうか（投了、宣言勝ち）
+    var isTerminal: Bool {
+        get {
+            return moveFrom == moveTo
+        }
+    }
 }
