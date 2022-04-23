@@ -201,7 +201,7 @@ class MCTSPlayer: NNPlayerBase {
             info(SearchProgress(message: "", rootPosition: position.copy(), pv: pvDetailedMoves, scoreCp: cpInt))
         }
         
-        var bestMove: Move = Move.Resign
+        var bestMove: Move = rootNode.childMoves![0]
         if let bestVisitInfo = rootNode.getBestVisitChild() {
             
             bestMove = bestVisitInfo.move

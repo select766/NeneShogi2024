@@ -250,10 +250,11 @@ class CSAClient {
             }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move, scoreCp: Int) in
             self.queue.async {
+                self.goRunning = false
+                // 千日手成立の場合、サーバから千日手が成立する手がきた後、#SENNICHITE,#DRAWが来る。手を受け取った時点で思考を開始してしまうので、思考結果を出力してしまう場合があるがレースコンディションなので仕方ない。現状、一局ごとにTCP接続を切っているので、次の対局に影響することはないので放置。
                 let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
                 self.lastGoScoreCp = scoreCp
                 self.sendCSA(message: bestMoveCSA)
-                self.goRunning = false
                 self.runPonderIfPossible(bestMove: bestMove, movesForGo: movesForGo)
             }
         })
