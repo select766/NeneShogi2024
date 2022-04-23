@@ -15,7 +15,7 @@ class USIClient {
     var goRunning = false
     var lastPositionArg: String? = nil
     var position: Position // 手番把握のためにAIとは別に必要
-    var moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+    var moveHistory: [MoveHistoryItem] = []
     
     init(matchManager: MatchManager, usiConfig: USIConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -125,11 +125,11 @@ class USIClient {
                 // 自分が指した手は直接は表示できない(相手が指した後のpositionコマンドを待つ必要がある)
                 let positionForDetailedMove = Position()
                 positionForDetailedMove.setSFEN(sfen: position.originSFEN)
-                var mh: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+                var mh: [MoveHistoryItem] = []
                 for move in position.moveStack {
                     let dm = positionForDetailedMove.makeDetailedMove(move: move)
                     // 消費時間は含まれていない
-                    mh.append((detailedMove: dm, usedTime: nil))
+                    mh.append(MoveHistoryItem(detailedMove: dm, usedTime: nil, scoreCp: nil))
                     positionForDetailedMove.doMove(move: move)
                 }
                 moveHistory = mh
@@ -196,7 +196,8 @@ class USIClient {
                 self.sendUSI(message: usiInfo)
                 self.matchManager.updateSearchProgress(searchProgress: sp)
             }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
+            // TODO: 評価値をmoveHistoryに取り回す
             self.queue.async {
                 self.sendUSI(message: "bestmove \(bestMove.toUSIString())")
                 self.goRunning = false
@@ -230,7 +231,7 @@ class USIClient {
             //            self.queue.async {
             //                self.sendUSI(message: message)
             //            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
             self.queue.async {
                 print("ponder result \(bestMove.toUSIString())")
                 self.goRunning = false

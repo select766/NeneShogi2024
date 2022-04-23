@@ -2,13 +2,13 @@ import Foundation
 import CoreML
 
 class PolicyPlayer: NNPlayerBase {
-    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move, Int) -> Void) {
         searchDispatchQueue.async {
             self.goMain(info: info, thinkingTime: thinkingTime, callback: callback)
         }
     }
     
-    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move, Int) -> Void) {
         // goコマンド
         guard let model = self.model else {
             fatalError()
@@ -16,7 +16,7 @@ class PolicyPlayer: NNPlayerBase {
         let moves = position.generateMoveList()
         let inputArray = position.getDNNInput()
         if moves.count == 0 {
-            callback(Move.Resign)
+            callback(Move.Resign, -30000)
         }
         guard let mmArray = try? MLMultiArray(shape: [1, 119, 9, 9], dataType: .float32) else {
             fatalError("Cannot allocate MLMultiArray")
@@ -42,7 +42,7 @@ class PolicyPlayer: NNPlayerBase {
         
         info(SearchProgress(message: "", rootPosition: position.copy(), pv: [position.makeDetailedMove(move: bestMove)], scoreCp: cpInt))
 
-        callback(bestMove)
+        callback(bestMove, cpInt)
     }
     
     override func stop() {}

@@ -22,7 +22,7 @@ class RandomPlayer: PlayerProtocol {
         position.setPosition(moves: moves)
     }
     
-    func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move, Int) -> Void) {
         // goコマンド
         let moves = position.generateMoveList()
         let bestMove: Move
@@ -32,7 +32,7 @@ class RandomPlayer: PlayerProtocol {
         } else {
             bestMove = Move.Resign
         }
-        callback(bestMove)
+        callback(bestMove, 0)
     }
 
     func stop() {}

@@ -1,8 +1,14 @@
+struct MoveHistoryItem {
+    let detailedMove: DetailedMove
+    let usedTime: Double?
+    let scoreCp: Int?
+}
+
 // 対局の状態（接続状態、盤面や指し手履歴）
 class MatchStatus {
     let position: Position
-    let moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)]
-    init(position: Position, moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)]) {
+    let moveHistory: [MoveHistoryItem]
+    init(position: Position, moveHistory: [MoveHistoryItem]) {
         self.position = position
         self.moveHistory = moveHistory
     }

@@ -138,14 +138,14 @@ class MCTSPlayer: NNPlayerBase {
         }
     }
     
-    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move) -> Void) {
+    override func go(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime, callback: @escaping (Move, Int) -> Void) {
         searchDispatchQueue.async {
-            let bestMove = self.goMain(info: info, thinkingTime: thinkingTime)
-            callback(bestMove)
+            let (bestMove, cpInt) = self.goMain(info: info, thinkingTime: thinkingTime)
+            callback(bestMove, cpInt)
         }
     }
     
-    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime) -> Move {
+    func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime) -> (Move, Int) {
         inPonderMode = thinkingTime.ponder
         // 思考時間設定
         stopSignal = false
@@ -165,14 +165,15 @@ class MCTSPlayer: NNPlayerBase {
         lastRootNodeInfo = nil // メモリ解放
         if position.isNyugyoku() {
             // 入玉宣言
-            return Move.Win
+            return (Move.Win, 30000)
         }
         let childCount = rootNode.childMoves!.count
         if childCount == 0 {
-            return Move.Resign
+            return (Move.Resign, -30000)
         }
         if childCount == 1 {
-            return rootNode.childMoves![0]
+            // TODO 評価値をつける
+            return (rootNode.childMoves![0], 0)
         }
         evaluateRootNode(position: position, node: rootNode)
         
@@ -182,10 +183,12 @@ class MCTSPlayer: NNPlayerBase {
         searchBenchDefault.startSection(id: .empty)
         searchBenchDefault.display()
         
+        var cpInt = 0
+        
         if !inPonderMode {
             // TODO: 探索の途中でも一定期間ごとにPV出力
             let pv = rootNode.getPV()
-            let cpInt = winRateToCp(winrate: pv.winrate)
+            cpInt = winRateToCp(winrate: pv.winrate)
             // var infoString = "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
             var pvDetailedMoves: [DetailedMove] = []
             for move in pv.moves {
@@ -215,7 +218,7 @@ class MCTSPlayer: NNPlayerBase {
             lastRootNodeInfo = RootNodeInfo(node: rootNode, originSFEN: position.originSFEN, moves: position.moveStack)
         }
         
-        return bestMove
+        return (bestMove, cpInt)
     }
     
     func findOrMakeRootNode() -> UCTNode {

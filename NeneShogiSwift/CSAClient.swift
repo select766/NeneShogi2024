@@ -19,9 +19,10 @@ class CSAClient {
     var position: Position
     var state = CSAClientState.waiting
     var myRemainingTime: Double = 0.0
-    var moveHistory: [(detailedMove: DetailedMove, usedTime: Double?)] = []
+    var moveHistory: [MoveHistoryItem] = []
     var lastSendTime: Date = Date()
     var goRunning = false
+    var lastGoScoreCp: Int? = nil
     
     init(matchManager: MatchManager, csaConfig: CSAConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -157,13 +158,14 @@ class CSAClient {
             moveHistory = []
             position.setHirate()
             mayneedgo = true
+            lastGoScoreCp = nil
         } else if command.starts(with: "+") || command.starts(with: "-") {
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
                 print("parsed move: \(move.toUSIString())")
                 let detail = position.makeDetailedMove(move: move)
                 if move.isTerminal {
-                    moveHistory.append((detail, nil))
+                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: nil, scoreCp: nil))
                 } else {
                     mayneedgo = true
                     moves.append(move)
@@ -188,7 +190,7 @@ class CSAClient {
                     } catch {
                         print("error on extracting time")
                     }
-                    moveHistory.append((detail, usedTime))
+                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? lastGoScoreCp : nil))
                     print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
                 }
             } else {
@@ -196,9 +198,9 @@ class CSAClient {
             }
         } else if command == "%TORYO" {
             // 消費時間情報はついていない
-            moveHistory.append((detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil))
+            moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if command == "%KACHI" {
-            moveHistory.append((detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil))
+            moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN"].contains(command) {
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
@@ -246,9 +248,10 @@ class CSAClient {
             self.queue.async {
                 self.matchManager.updateSearchProgress(searchProgress: sp)
             }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, scoreCp: Int) in
             self.queue.async {
                 let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                self.lastGoScoreCp = scoreCp
                 self.sendCSA(message: bestMoveCSA)
                 self.goRunning = false
                 self.runPonderIfPossible(bestMove: bestMove, movesForGo: movesForGo)
@@ -278,7 +281,7 @@ class CSAClient {
             //            self.queue.async {
             //                self.sendUSI(message: message)
             //            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move) in
+        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
             self.queue.async {
                 print("ponder result \(bestMove.toUSIString())")
                 self.goRunning = false

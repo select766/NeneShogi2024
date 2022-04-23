@@ -3,12 +3,13 @@ import SwiftUI
 let userDefaultsCSAConfigSaveKey = "csaConfigSave"
 let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 
-struct MoveHistoryItem: Identifiable {
+struct MoveHistoryDisplayItem: Identifiable {
     let id: Int
     let tekazu: Int
     let detailedMove: DetailedMove
     let usedTime: Int?
     let totalUsedTime: Int
+    let scoreCp: Int?
 }
 
 struct CommunicationHistoryDisplayItem: Identifiable {
@@ -47,7 +48,7 @@ struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
     @State var matchStatus: MatchStatus? = nil
-    @State var moveHistory: [MoveHistoryItem] = []
+    @State var moveHistory: [MoveHistoryDisplayItem] = []
     @State var communicationHistory: [CommunicationItem] = []
     @State var commuicationHistoryDisplay: [CommunicationHistoryDisplayItem] = []
     @State var searchProgress: SearchProgress? = nil
@@ -123,14 +124,18 @@ struct ContentView: View {
             commuicationHistoryDisplay = cis
         }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
             self.matchStatus = matchStatus
-            var mh: [MoveHistoryItem] = []
+            var mh: [MoveHistoryDisplayItem] = []
             var totalUsedTimes = [0.0, 0.0]
             for i in 0..<matchStatus.moveHistory.count {
                 let mi = matchStatus.moveHistory[i]
                 totalUsedTimes[mi.detailedMove.sideToMove.color] += mi.usedTime ?? 0.0
-                mh.append(MoveHistoryItem(id: i,tekazu: i+1,
+                mh.append(MoveHistoryDisplayItem(
+                    id: i,
+                    tekazu: i+1,
                                           detailedMove: mi.detailedMove, usedTime: mi.usedTime != nil ? Int(mi.usedTime!) : nil,
-                                          totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color])))
+                                          totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color]),
+                                                 scoreCp: mi.scoreCp
+                                                ))
             }
             self.moveHistory = mh
         }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
@@ -257,7 +262,7 @@ struct ContentView: View {
                             proxy in
                             VStack {
                                 ForEach(moveHistory) {moveHistoryItem in
-                                    Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime)").id(moveHistoryItem.id)
+                                    Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
                                 }
                             }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
                                 value in withAnimation {
