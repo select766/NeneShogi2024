@@ -7,6 +7,8 @@ class UCTNode {
     var childMoves: [Move]?
     var childMoveCount: [Int32]?
     var childSumValue: [Float]?
+    // 実験的機能: 勝率の分散を計算
+    var childSquaredSumValue: [Float]?
     var childNodes: [UCTNode?]?
     var policy: [Float]?
     var value: Float?
@@ -29,12 +31,13 @@ class UCTNode {
         self.childMoves = moveList
         self.childMoveCount = Array(repeating: 0, count: moveList.count)
         self.childSumValue = Array(repeating: 0.0, count: moveList.count)
+        self.childSquaredSumValue = Array(repeating: 0.0, count: moveList.count)
     }
     
     // 最大訪問数の子ノードを選択する
-    func getBestVisitChild() -> (index: Int, move: Move, winrate: Float, childNode: UCTNode?)? {
+    func getBestVisitChild() -> (index: Int, move: Move, winrate: Float, winrateStd: Float, childNode: UCTNode?)? {
         
-        guard let childMoves = childMoves, let childMoveCount = childMoveCount, let childSumValue = childSumValue else {
+        guard let childMoves = childMoves, let childMoveCount = childMoveCount, let childSumValue = childSumValue, let childSquaredSumValue = childSquaredSumValue else {
             return nil
         }
         
@@ -56,10 +59,12 @@ class UCTNode {
             return nil
         }
         let bestMove = childMoves[bestVisitIdx]
-        let bestWinRate = childSumValue[bestVisitIdx] / Float(childMoveCount[bestVisitIdx])
+        let cmcFloat = Float(childMoveCount[bestVisitIdx])
+        let bestWinRate = childSumValue[bestVisitIdx] / cmcFloat
+        let bestWinRateStd = sqrt(max(childSquaredSumValue[bestVisitIdx] / cmcFloat - bestWinRate * bestWinRate, 0.0))
         
         let childNode = childNodes?[bestVisitIdx]
-        return (index: bestVisitIdx, move: bestMove, winrate: bestWinRate, childNode)
+        return (index: bestVisitIdx, move: bestMove, winrate: bestWinRate, winrateStd: bestWinRateStd, childNode)
     }
     
     func getPV() -> (moves: [Move], winrate: Float, nodeCount: Int32) {
@@ -165,6 +170,7 @@ class UCTNode {
         let nodeCount = currentNode.moveCount
         var isRoot = true
         var winrate: Float = 0.0
+        var winrateStd: Float = 0.0
         var detailedMoves: [DetailedMove] = []
         var doMoveCount = 0
         while (detailedMoves.count < 10) { // 極端に長い表示を避けるための制限
@@ -175,6 +181,7 @@ class UCTNode {
                 doMoveCount += 1
                 if isRoot {
                     winrate = bestVisitInfo.winrate
+                    winrateStd = bestVisitInfo.winrateStd
                 }
                 if let childNode = bestVisitInfo.childNode {
                     currentNode = childNode
@@ -191,6 +198,6 @@ class UCTNode {
             position.undoMove()
         }
         
-        return SearchTreeNodeForVisualize(moveFromParent: moveFromParent, pv: detailedMoves, moveCount: Int(nodeCount), winrateMean: winrate, winrateStd: 0.0)
+        return SearchTreeNodeForVisualize(moveFromParent: moveFromParent, pv: detailedMoves, moveCount: Int(nodeCount), winrateMean: winrate, winrateStd: winrateStd)
     }
 }

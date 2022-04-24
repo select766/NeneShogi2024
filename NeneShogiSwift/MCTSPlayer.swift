@@ -319,6 +319,7 @@ class MCTSPlayer: NNPlayerBase {
                 let nextIndex = trajs[j].1
                 middleNode.sumValue += value
                 middleNode.childSumValue![nextIndex] += value
+                middleNode.childSquaredSumValue![nextIndex] += value * value
                 // virtual loss相殺
                 //                    middleNode.moveCount += 0
                 //                    middleNode.childMoveCount![nextIndex] += 0
@@ -334,6 +335,7 @@ class MCTSPlayer: NNPlayerBase {
                 let nextIndex = trajs[j].1
                 middleNode.sumValue += value
                 middleNode.childSumValue![nextIndex] += value
+                middleNode.childSquaredSumValue![nextIndex] += value * value
                 // virtual loss相殺
                 //                    middleNode.moveCount += 0
                 //                    middleNode.childMoveCount![nextIndex] += 0
