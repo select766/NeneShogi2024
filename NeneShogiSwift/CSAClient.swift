@@ -295,9 +295,9 @@ class CSAClient {
         player.position(moves: posaftermove)
         let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
         player.go(info: {(sp: SearchProgress) in
-            //            self.queue.async {
-            //                self.sendUSI(message: message)
-            //            }
+            self.queue.async {
+                self.matchManager.updateSearchProgress(searchProgress: sp)
+            }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
             self.queue.async {
                 print("ponder result \(bestMove.toUSIString())")
