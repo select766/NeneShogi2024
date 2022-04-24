@@ -189,11 +189,12 @@ class USIClient {
         player.go(info: {(sp: SearchProgress) in
             self.queue.async {
                 // "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
-                var usiInfo = "info depth \(sp.pv.count)  score cp \(sp.scoreCp) pv"
-                for dm in sp.pv {
-                    usiInfo += " \(dm.toUSIString())"
-                }
-                self.sendUSI(message: usiInfo)
+                // TODO: spを解釈する
+//                var usiInfo = "info depth \(sp.pv.count)  score cp \(sp.scoreCp) pv"
+//                for dm in sp.pv {
+//                    usiInfo += " \(dm.toUSIString())"
+//                }
+//                self.sendUSI(message: usiInfo)
                 self.matchManager.updateSearchProgress(searchProgress: sp)
             }
         }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in

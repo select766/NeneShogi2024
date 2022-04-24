@@ -44,6 +44,22 @@ func saveCSAConfigSave(csaConfigSave: CSAConfigSave) {
     UserDefaults.standard.set(data, forKey: userDefaultsCSAConfigSaveKey)
 }
 
+func pvsToString(pvs: [SearchTreeRootForVisualize]) -> String {
+    var s = ""
+    for pv in pvs {
+        let rm = pv.rootMoveNode
+        s += "\(rm.moveFromParent.toPrintString()) \(rm.winrateMean) / \(rm.moveCount)\n"
+        for child in pv.childNodes {
+            s += "└\(child.moveFromParent.toPrintString())"
+            for cpv in child.pv.prefix(3) {
+                s += "\(cpv.toPrintString())"
+            }
+            s += "\n"
+        }
+    }
+    return s
+}
+
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
@@ -132,10 +148,10 @@ struct ContentView: View {
                 mh.append(MoveHistoryDisplayItem(
                     id: i,
                     tekazu: i+1,
-                                          detailedMove: mi.detailedMove, usedTime: mi.usedTime != nil ? Int(mi.usedTime!) : nil,
-                                          totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color]),
-                                                 scoreCp: mi.scoreCp
-                                                ))
+                    detailedMove: mi.detailedMove, usedTime: mi.usedTime != nil ? Int(mi.usedTime!) : nil,
+                    totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color]),
+                    scoreCp: mi.scoreCp
+                ))
             }
             self.moveHistory = mh
         }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
@@ -251,42 +267,49 @@ struct ContentView: View {
     var body: some View {
         Group {
             if let matchStatus = matchStatus {
-                VStack {
-                    Text(latestMessage)
-                        .padding()
+                HStack {
                     Text(matchStatus.position.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                         .padding()
-                    Text("指し手 消費時間/合計").padding()
-                    ScrollView(.vertical, showsIndicators: true) {
-                        ScrollViewReader {
-                            proxy in
-                            VStack {
-                                ForEach(moveHistory) {moveHistoryItem in
-                                    Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
-                                }
-                            }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
-                                value in withAnimation {
-                                    proxy.scrollTo(value, anchor: .bottom)
-                                }
-                            })
+                    VStack {
+                        Text(latestMessage)
+                            .padding()
+                        if let searchProgress = searchProgress {
+                            Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                .padding()
                         }
+                        Text("指し手 消費時間/合計").padding()
+                        ScrollView(.vertical, showsIndicators: true) {
+                            ScrollViewReader {
+                                proxy in
+                                VStack {
+                                    ForEach(moveHistory) {moveHistoryItem in
+                                        Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
+                                    }
+                                }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
+                                    value in withAnimation {
+                                        proxy.scrollTo(value, anchor: .bottom)
+                                    }
+                                })
+                            }
+                            
+                        }.frame(maxWidth: .infinity, maxHeight: 120.0)
                         
-                    }.frame(maxWidth: .infinity, maxHeight: 120.0)
-                    
-                    ScrollView(.vertical, showsIndicators: true) {
-                        ScrollViewReader {
-                            proxy in
-                            VStack {
-                                ForEach(commuicationHistoryDisplay) {cItem in
-                                    Text(cItem.displayString).id(cItem.id)
-                                }
-                            }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
-                                value in proxy.scrollTo(value, anchor: .bottom)
-                            })
-                        }
-                        
-                    }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                        ScrollView(.vertical, showsIndicators: true) {
+                            ScrollViewReader {
+                                proxy in
+                                VStack {
+                                    ForEach(commuicationHistoryDisplay) {cItem in
+                                        Text(cItem.displayString).id(cItem.id)
+                                    }
+                                }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
+                                    value in proxy.scrollTo(value, anchor: .bottom)
+                                })
+                            }
+                            
+                        }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                    }
                 }
+                
             } else {
                 VStack {
                     Text(latestMessage)
@@ -367,15 +390,15 @@ struct ContentView: View {
                         }.onChange(of: csaConfigSelected) {
                             selectedKey in
                             if let lastUsedConfig = csaConfigSave.configs[selectedKey] {
-                            csaConfigName = selectedKey
-                            csaServerIpAddress = lastUsedConfig.csaServerIpAddress
-                            csaServerPort = String(lastUsedConfig.csaServerPort)
-                            csaReconnect = lastUsedConfig.reconnect
-                            csaLoginName = lastUsedConfig.loginName
-                            csaLoginPassword = lastUsedConfig.loginPassword
-                            csaPonder = lastUsedConfig.ponder
-                            csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
-                            csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
+                                csaConfigName = selectedKey
+                                csaServerIpAddress = lastUsedConfig.csaServerIpAddress
+                                csaServerPort = String(lastUsedConfig.csaServerPort)
+                                csaReconnect = lastUsedConfig.reconnect
+                                csaLoginName = lastUsedConfig.loginName
+                                csaLoginPassword = lastUsedConfig.loginPassword
+                                csaPonder = lastUsedConfig.ponder
+                                csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
+                                csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
                             }
                         }
                     }.padding()

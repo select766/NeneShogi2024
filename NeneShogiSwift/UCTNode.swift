@@ -98,4 +98,99 @@ class UCTNode {
             }
         }
     }
+    
+    
+    func getVisualizePV(rootPosition: Position) -> [SearchTreeRootForVisualize] {
+        return getVisualizePV1(rootPosition: rootPosition)
+    }
+    
+    private func getVisualizePV1(rootPosition: Position) -> [SearchTreeRootForVisualize] {
+        guard let childMoves = childMoves, let childMoveCount = childMoveCount, let childNodes = childNodes else {
+            return []
+        }
+        
+        var pvs: [SearchTreeRootForVisualize] = []
+        // moveCount降順
+        let childOrdered = childMoveCount.enumerated().sorted(by: {$0.element > $1.element})
+        for childInfo in childOrdered.prefix(3) {
+            let childIdx = childInfo.offset
+            let move = childMoves[childIdx]
+            let detailedMove = rootPosition.makeDetailedMove(move: move)
+            rootPosition.doMove(move: move)
+            if let childNode = childNodes[childIdx] {
+                let rootMoveNode = childNode.getVisualizePVChild(moveFromParent: detailedMove, position: rootPosition)
+                
+                pvs.append(SearchTreeRootForVisualize(rootMoveNode: rootMoveNode, childNodes: childNode.getVisualizePV2(rootPosition: rootPosition)))
+            } else {
+                // TODO なんか入れる
+            }
+            
+            rootPosition.undoMove()
+        }
+        // moveCount降順
+        pvs.sort(by: {$0.rootMoveNode.moveCount > $1.rootMoveNode.moveCount})
+        return pvs
+
+    }
+    
+    private func getVisualizePV2(rootPosition: Position) -> [SearchTreeNodeForVisualize] {
+        guard let childMoves = childMoves, let childMoveCount = childMoveCount, let childNodes = childNodes else {
+            return []
+        }
+        
+        var pvs: [SearchTreeNodeForVisualize] = []
+        // moveCount降順
+        let childOrdered = childMoveCount.enumerated().sorted(by: {$0.element > $1.element})
+        for childInfo in childOrdered.prefix(3) {
+            let childIdx = childInfo.offset
+            let move = childMoves[childIdx]
+            let detailedMove = rootPosition.makeDetailedMove(move: move)
+            rootPosition.doMove(move: move)
+            if let childNode = childNodes[childIdx] {
+                let rootMoveNode = childNode.getVisualizePVChild(moveFromParent: detailedMove, position: rootPosition)
+                pvs.append(rootMoveNode)
+            } else {
+                // TODO なんか入れる
+            }
+            
+            rootPosition.undoMove()
+        }
+        pvs.sort(by: {$0.moveCount > $1.moveCount})
+        return pvs
+
+    }
+    
+    private func getVisualizePVChild(moveFromParent: DetailedMove, position: Position) -> SearchTreeNodeForVisualize {
+        var currentNode = self
+        let nodeCount = currentNode.moveCount
+        var isRoot = true
+        var winrate: Float = 0.0
+        var detailedMoves: [DetailedMove] = []
+        var doMoveCount = 0
+        while (detailedMoves.count < 10) { // 極端に長い表示を避けるための制限
+            if let bestVisitInfo = currentNode.getBestVisitChild() {
+                let detailedMove = position.makeDetailedMove(move: bestVisitInfo.move)
+                detailedMoves.append(detailedMove)
+                position.doMove(move: bestVisitInfo.move)
+                doMoveCount += 1
+                if isRoot {
+                    winrate = bestVisitInfo.winrate
+                }
+                if let childNode = bestVisitInfo.childNode {
+                    currentNode = childNode
+                } else {
+                    break
+                }
+            } else {
+                break
+            }
+            
+            isRoot = false
+        }
+        for _ in 0..<doMoveCount {
+            position.undoMove()
+        }
+        
+        return SearchTreeNodeForVisualize(moveFromParent: moveFromParent, pv: detailedMoves, moveCount: Int(nodeCount), winrateMean: winrate, winrateStd: 0.0)
+    }
 }

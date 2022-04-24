@@ -10,8 +10,8 @@ class MCTSPlayer: NNPlayerBase {
     
     var batchSize: Int = 1
     var cPuct: Float = 1.0
-    //var nodeLimit = 100000
-    var nodeLimit = 10 // TODO
+    var nodeLimit = 100000
+    //var nodeLimit = 100 // TODO
     // ルートノードの再利用を許可するか
     var reuseRoot = true
     // 現在の思考がponderかどうか
@@ -19,6 +19,7 @@ class MCTSPlayer: NNPlayerBase {
     var stopSignal = false
     let timerQueue: DispatchQueue
     var lastRootNodeInfo: RootNodeInfo? = nil
+    var lastPVTime = Date()
     
     override init() {
         timerQueue = DispatchQueue(label: "mctsPlayerTimer")
@@ -179,7 +180,7 @@ class MCTSPlayer: NNPlayerBase {
         
         // MCTS
         searchBenchDefault.startSection(id: .search)
-        search(rootNode: rootNode)
+        search(rootNode: rootNode, info: info)
         searchBenchDefault.startSection(id: .empty)
         searchBenchDefault.display()
         
@@ -198,7 +199,7 @@ class MCTSPlayer: NNPlayerBase {
             for _ in 0..<pv.moves.count {
                 position.undoMove()
             }
-            info(SearchProgress(message: "", rootPosition: position.copy(), pv: pvDetailedMoves, scoreCp: cpInt))
+//            info(SearchProgress(message: "", rootPosition: position.copy(), pv: pvDetailedMoves, scoreCp: cpInt))
         }
         
         var bestMove: Move = rootNode.childMoves![0]
@@ -352,7 +353,7 @@ class MCTSPlayer: NNPlayerBase {
     }
     
     
-    func search(rootNode: UCTNode) {
+    func search(rootNode: UCTNode, info: (SearchProgress) -> Void) {
         // 探索を行なって木を成長させる
         for _ in 0..<100000 {
             if stopSignal {
@@ -372,6 +373,11 @@ class MCTSPlayer: NNPlayerBase {
             // autoreleasepoolがないとgoメソッド全体が終了するまで中で確保されたメモリが解放されず、メモリを使いすぎてクラッシュする(デバッガで表示されるサイズから、DNNの入出力バッファが解放されていないと推測される)
             autoreleasepool(invoking: {
                 searchOnce(rootNode: rootNode)
+                if lastPVTime.timeIntervalSinceNow < 0.1 {
+                    let pvs = rootNode.getVisualizePV(rootPosition: self.position)
+                    info(SearchProgress(pvs: pvs))
+                    lastPVTime = Date()
+                }
             })
         }
     }

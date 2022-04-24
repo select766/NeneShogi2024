@@ -40,7 +40,7 @@ class PolicyPlayer: NNPlayerBase {
         let resultArray = UnsafeMutablePointer<Float>(OpaquePointer(pred.result.dataPointer))
         let cpInt = winRateToCp(winrate: resultArray[0])
         
-        info(SearchProgress(message: "", rootPosition: position.copy(), pv: [position.makeDetailedMove(move: bestMove)], scoreCp: cpInt))
+//        info(SearchProgress(message: "", rootPosition: position.copy(), pv: [position.makeDetailedMove(move: bestMove)], scoreCp: cpInt))
 
         callback(bestMove, cpInt)
     }
