@@ -133,7 +133,7 @@ class USIClient {
                     positionForDetailedMove.doMove(move: move)
                 }
                 moveHistory = mh
-                matchManager.updateMatchStatus(matchStatus: MatchStatus(position: positionForDetailedMove, moveHistory: moveHistory))
+                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: positionForDetailedMove, moveHistory: moveHistory))
             }
             break
         case "go":

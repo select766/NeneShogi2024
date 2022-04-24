@@ -44,6 +44,20 @@ func saveCSAConfigSave(csaConfigSave: CSAConfigSave) {
     UserDefaults.standard.set(data, forKey: userDefaultsCSAConfigSaveKey)
 }
 
+func gameStateToString(gameState: MatchStatus.GameState) -> String {
+    switch gameState {
+    case .connecting:
+        return "接続中"
+    case .initializing:
+        return "対局待ち"
+    case .playing:
+        return "対局中"
+    case .end(let gameResult):
+        // TODO: "#WIN"などコマンド文字列をちゃんと解釈する
+        return "終了(\(gameResult))"
+    }
+}
+
 func pvsToString(pvs: [SearchTreeRootForVisualize]) -> String {
     var s = ""
     for pv in pvs {
@@ -273,6 +287,8 @@ struct ContentView: View {
                         .padding()
                     VStack {
                         Text(latestMessage)
+                            .padding()
+                        Text(gameStateToString(gameState: matchStatus.gameState)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                             .padding()
                         if let searchProgress = searchProgress {
                             Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))

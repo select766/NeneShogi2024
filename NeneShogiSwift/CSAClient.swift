@@ -4,6 +4,7 @@ import Network
 enum CSAClientState {
     case waiting
     case game
+    case end(gameResult: String)
 }
 
 class CSAClient {
@@ -51,6 +52,8 @@ class CSAClient {
     
     func startConnection() {
         self.state = .waiting
+        
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .connecting, position: position, moveHistory: moveHistory))
         self.matchManager.displayMessage("connecting to CSA server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
@@ -58,6 +61,8 @@ class CSAClient {
             switch newState {
             case .ready:
                 self.matchManager.displayMessage("connected to CSA server")
+                
+                self.matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .initializing, position: self.position, moveHistory: self.moveHistory))
                 self.sendCSA(message: "LOGIN \(self.csaConfig.loginName) \(self.csaConfig.loginPassword)")
                 self.startRecv()
             case .waiting(let nwError):
@@ -124,6 +129,8 @@ class CSAClient {
             _handleCSACommandWaiting(command: command)
         case .game:
             _handleCSACommandGame(command: command)
+        case .end:
+            break
         }
     }
     
@@ -143,7 +150,10 @@ class CSAClient {
                     self.myRemainingTime = self.csaConfig.timeTotalSec
                     self.moves = []
                     self.moveHistory = []
+                    self.position.setHirate()
                     self.sendCSA(message: "AGREE")
+                    
+                    self.matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: self.position, moveHistory: self.moveHistory))
                 }
             })
         }
@@ -202,6 +212,7 @@ class CSAClient {
         } else if command == "%KACHI" {
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN"].contains(command) {
+            state = .end(gameResult: command)
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
             // ponder中に終わる場合があるので一応stopしておく
@@ -222,7 +233,12 @@ class CSAClient {
             }
         }
         
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(position: position, moveHistory: moveHistory))
+        switch state {
+        case .end(let gameResult):
+            matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .end(gameResult: gameResult), position: position, moveHistory: moveHistory))
+        default:
+            matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: position, moveHistory: moveHistory))
+        }
     }
     
     func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
