@@ -48,7 +48,8 @@ func pvsToString(pvs: [SearchTreeRootForVisualize]) -> String {
     var s = ""
     for pv in pvs {
         let rm = pv.rootMoveNode
-        s += "\(rm.moveFromParent.toPrintString()) \(Int(rm.winrateMean * 100))%±\(Int(rm.winrateStd * 100)) / \(rm.moveCount)\n"
+        // winrateMeanは、指したあとの手番の勝率なので反転させる
+        s += "\(rm.moveFromParent.toPrintString()) \(Int((1.0 - rm.winrateMean) * 100))%±\(Int(rm.winrateStd * 100)) / \(rm.moveCount)\n"
         for child in pv.childNodes {
             s += "└\(child.moveFromParent.toPrintString())"
             for cpv in child.pv.prefix(3) {
