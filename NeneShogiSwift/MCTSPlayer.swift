@@ -20,6 +20,8 @@ class MCTSPlayer: NNPlayerBase {
     let timerQueue: DispatchQueue
     var lastRootNodeInfo: RootNodeInfo? = nil
     var lastPVTime = Date()
+    var goStartTime = Date()
+    var totalNodesOfRootNodeOnGoStart = 0
     
     override init() {
         timerQueue = DispatchQueue(label: "mctsPlayerTimer")
@@ -148,6 +150,7 @@ class MCTSPlayer: NNPlayerBase {
     
     func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime) -> (Move, Int) {
         inPonderMode = thinkingTime.ponder
+        goStartTime = Date()
         // 思考時間設定
         stopSignal = false
         var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopSignalフラグを操作しないようにするためのフラグ
@@ -163,6 +166,7 @@ class MCTSPlayer: NNPlayerBase {
         })
         
         let rootNode = findOrMakeRootNode()
+        totalNodesOfRootNodeOnGoStart = Int(rootNode.moveCount)
         lastRootNodeInfo = nil // メモリ解放
         if position.isNyugyoku() {
             // 入玉宣言
@@ -375,9 +379,11 @@ class MCTSPlayer: NNPlayerBase {
             // autoreleasepoolがないとgoメソッド全体が終了するまで中で確保されたメモリが解放されず、メモリを使いすぎてクラッシュする(デバッガで表示されるサイズから、DNNの入出力バッファが解放されていないと推測される)
             autoreleasepool(invoking: {
                 searchOnce(rootNode: rootNode)
-                if lastPVTime.timeIntervalSinceNow < 0.1 {
+                if lastPVTime.timeIntervalSinceNow < -1.0 {
                     let pvs = rootNode.getVisualizePV(rootPosition: self.position)
-                    info(SearchProgress(pvs: pvs))
+                    let totalNodes = Int(rootNode.moveCount)
+                    let nps = Int(Double(totalNodes - totalNodesOfRootNodeOnGoStart) / (-goStartTime.timeIntervalSinceNow))
+                    info(SearchProgress(pvs: pvs, nps: nps, totalNodes: totalNodes))
                     lastPVTime = Date()
                 }
             })

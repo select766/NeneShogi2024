@@ -17,11 +17,12 @@ struct SearchTreeRootForVisualize {
 // 可視化及びサーバに読み筋を送るための探索進捗情報
 class SearchProgress {
     let pvs: [SearchTreeRootForVisualize]
-    // TODO: 残り時間
-    // TODO: 探索ノード数
-    // TODO: NPS
+    let nps: Int
+    let totalNodes: Int
     
-    init(pvs: [SearchTreeRootForVisualize]) {
+    init(pvs: [SearchTreeRootForVisualize], nps: Int, totalNodes: Int) {
         self.pvs = pvs
+        self.nps = nps
+        self.totalNodes = totalNodes
     }
 }

@@ -275,6 +275,9 @@ struct ContentView: View {
                         Text(latestMessage)
                             .padding()
                         if let searchProgress = searchProgress {
+                            Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                .padding()
+                            
                             Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                                 .padding()
                         }
