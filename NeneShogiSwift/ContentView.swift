@@ -340,7 +340,7 @@ struct ContentView: View {
                         }) {
                             Text("Start USI")
                         }
-                        TextField("USI IP", text: $usiServerIpAddress).frame(width: 100.0, height: 20.0)
+                        TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
                     }.padding()
                     VStack {
                         Text("CSA client mode")
@@ -348,11 +348,11 @@ struct ContentView: View {
                         Group {
                             HStack {
                                 Text("IP")
-                                TextField("IP", text: $csaServerIpAddress).frame(width: 100.0, height: 20.0)
+                                TextField("IP", text: $csaServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
                             }
                             HStack {
                                 Text("Port")
-                                TextField("Port", text: $csaServerPort).frame(width: 40.0, height: 20.0)
+                                TextField("Port", text: $csaServerPort).keyboardType(.numberPad).disableAutocorrection(true).frame(width: 40.0, height: 20.0)
                             }
                             HStack {
                                 Toggle("Reconnect", isOn: $csaReconnect).frame(width: 200.0, height: 20.0)
@@ -361,13 +361,13 @@ struct ContentView: View {
                         Group {
                             HStack {
                                 Text("Login name")
-                                TextField("Login name", text: $csaLoginName).frame(width: 200.0, height: 20.0)
+                                TextField("Login name", text: $csaLoginName).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
                             }
                             HStack {
                                 Text("Login password")
                                 Group {
                                     if csaShowLoginPassword {
-                                        TextField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
+                                        TextField("Login password", text: $csaLoginPassword).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
                                         
                                     } else {
                                         SecureField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
@@ -384,11 +384,11 @@ struct ContentView: View {
                             }
                             HStack {
                                 Text("Total time")
-                                TextField("", text: $csaTimeTotalSec).frame(width: 100.0, height: 20.0)
+                                TextField("", text: $csaTimeTotalSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
                             }
                             HStack {
                                 Text("Increment time")
-                                TextField("", text: $csaTimeIncrementSec).frame(width: 100.0, height: 20.0)
+                                TextField("", text: $csaTimeIncrementSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
                             }
                         }
                         HStack {
