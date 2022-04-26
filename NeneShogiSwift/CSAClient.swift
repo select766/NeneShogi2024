@@ -24,6 +24,7 @@ class CSAClient {
     var lastSendTime: Date = Date()
     var goRunning = false
     var lastGoScoreCp: Int? = nil
+    var players: [String?] = [nil, nil]
     
     init(matchManager: MatchManager, csaConfig: CSAConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -50,10 +51,14 @@ class CSAClient {
         setKeepalive()
     }
     
+    private func sendMatchStatus(gameState: MatchStatus.GameState) {
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: gameState, players: players, position: position, moveHistory: moveHistory))
+    }
+    
     func startConnection() {
         self.state = .waiting
         
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .connecting, position: position, moveHistory: moveHistory))
+        sendMatchStatus(gameState: .connecting)
         self.matchManager.displayMessage("connecting to CSA server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
@@ -62,7 +67,7 @@ class CSAClient {
             case .ready:
                 self.matchManager.displayMessage("connected to CSA server")
                 
-                self.matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .initializing, position: self.position, moveHistory: self.moveHistory))
+                self.sendMatchStatus(gameState: .initializing)
                 self.sendCSA(message: "LOGIN \(self.csaConfig.loginName) \(self.csaConfig.loginPassword)")
                 self.startRecv()
             case .waiting(let nwError):
@@ -143,6 +148,10 @@ class CSAClient {
             } else {
                 fatalError("Unknown turn")
             }
+        } else if command.starts(with: "Name+:") {
+            players[0] =  String(command[command.index(command.startIndex, offsetBy: 6)...])
+        } else if command.starts(with: "Name-:") {
+            players[1] =  String(command[command.index(command.startIndex, offsetBy: 6)...])
         } else if command.starts(with: "END Game_Summary") {
             self.player?.isReady(callback: {
                 self.queue.async {
@@ -153,7 +162,7 @@ class CSAClient {
                     self.position.setHirate()
                     self.sendCSA(message: "AGREE")
                     
-                    self.matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: self.position, moveHistory: self.moveHistory))
+                    self.sendMatchStatus(gameState: .playing)
                 }
             })
         }
@@ -235,9 +244,9 @@ class CSAClient {
         
         switch state {
         case .end(let gameResult):
-            matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .end(gameResult: gameResult), position: position, moveHistory: moveHistory))
+            sendMatchStatus(gameState: .end(gameResult: gameResult))
         default:
-            matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: position, moveHistory: moveHistory))
+            sendMatchStatus(gameState: .playing)
         }
     }
     

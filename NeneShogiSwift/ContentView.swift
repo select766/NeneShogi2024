@@ -287,15 +287,14 @@ struct ContentView: View {
                         .padding()
                     VStack {
                         Text(latestMessage)
-                            .padding()
                         Text(gameStateToString(gameState: matchStatus.gameState)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                             .padding()
+                        
+                        Text("▲\(matchStatus.players[0] ?? "")\n△\(matchStatus.players[1] ?? "")").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
                         if let searchProgress = searchProgress {
                             Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
-                                .padding()
                             
                             Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
-                                .padding()
                         }
                         Text("指し手 消費時間/合計").padding()
                         ScrollView(.vertical, showsIndicators: true) {

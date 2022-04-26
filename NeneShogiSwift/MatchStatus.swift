@@ -13,10 +13,12 @@ class MatchStatus {
         case end(gameResult: String)
     }
     let gameState: GameState
+    let players: [String?]
     let position: Position
     let moveHistory: [MoveHistoryItem]
-    init(gameState: GameState, position: Position, moveHistory: [MoveHistoryItem]) {
+    init(gameState: GameState, players: [String?], position: Position, moveHistory: [MoveHistoryItem]) {
         self.gameState = gameState
+        self.players = players
         self.position = position
         self.moveHistory = moveHistory
     }

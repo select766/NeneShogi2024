@@ -133,7 +133,10 @@ class USIClient {
                     positionForDetailedMove.doMove(move: move)
                 }
                 moveHistory = mh
-                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, position: positionForDetailedMove, moveHistory: moveHistory))
+                
+                let players: [String?] = position.sideToMove == PColor.BLACK ? ["my", "opponent"] : ["opponent", "my"]
+                
+                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, players: players, position: positionForDetailedMove, moveHistory: moveHistory))
             }
             break
         case "go":
