@@ -155,6 +155,10 @@ class MCTSPlayer: NNPlayerBase {
             print("bookMove: \(bookMove.toUSIString())")
             return (bookMove, 0)
         }
+        if let mateMove = position.mateSearch() {
+            print("mateMove: \(mateMove.toUSIString())")
+            return (mateMove, 30000)
+        }
         // 思考時間設定
         stopSignal = false
         var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopSignalフラグを操作しないようにするためのフラグ
