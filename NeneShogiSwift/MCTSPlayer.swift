@@ -151,6 +151,10 @@ class MCTSPlayer: NNPlayerBase {
     func goMain(info: @escaping (SearchProgress) -> Void, thinkingTime: ThinkingTime) -> (Move, Int) {
         inPonderMode = thinkingTime.ponder
         goStartTime = Date()
+        if let bookMove = getBookMove(positionSfen: position.getSFEN()) {
+            print("bookMove: \(bookMove.toUSIString())")
+            return (bookMove, 0)
+        }
         // 思考時間設定
         stopSignal = false
         var enableStop = true // タイマー以外の要因で探索が終了した場合に、タイマーによってstopSignalフラグを操作しないようにするためのフラグ
