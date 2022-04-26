@@ -149,9 +149,9 @@ class CSAClient {
                 fatalError("Unknown turn")
             }
         } else if command.starts(with: "Name+:") {
-            players[0] =  String(command[command.index(command.startIndex, offsetBy: 6)...])
+            players[0] = String(command.dropFirst(6))
         } else if command.starts(with: "Name-:") {
-            players[1] =  String(command[command.index(command.startIndex, offsetBy: 6)...])
+            players[1] = String(command.dropFirst(6))
         } else if command.starts(with: "END Game_Summary") {
             self.player?.isReady(callback: {
                 self.queue.async {
