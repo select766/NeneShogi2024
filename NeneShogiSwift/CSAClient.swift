@@ -76,6 +76,7 @@ class CSAClient {
                 self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
             case .cancelled:
                 self.connection = nil
+                // プロトコルに沿わず不意に切断された場合、探索が終了しない状況になる
                 if self.csaConfig.reconnect {
                     // LOGOUT送信の直前にサーバ側から切断され、すぐに再接続されると新しい接続に対してLOGOUTを送ってしまうかもしれないので予防的に少し待ってから再接続する
                     self.queue.asyncAfter(deadline: .now() + 5.0, execute: self.startConnection)
@@ -215,12 +216,12 @@ class CSAClient {
             } else {
                 print("parse move failed")
             }
-        } else if command == "%TORYO" {
-            // 消費時間情報はついていない
+        } else if command.starts(with: "%TORYO") {
+            // プロトコル説明では、%TORYO,T10のように消費時間が来るとの説明があるが、実際の実装では消費時間情報はついていない。念のため先頭一致で処理する
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
-        } else if command == "%KACHI" {
+        } else if command.starts(with: "%KACHI") {
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
-        } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN"].contains(command) {
+        } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN", "#CENSORED"].contains(command) {
             state = .end(gameResult: command)
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
