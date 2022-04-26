@@ -305,9 +305,8 @@ struct ContentView: View {
                                         Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
                                     }
                                 }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
-                                    value in withAnimation {
-                                        proxy.scrollTo(value, anchor: .bottom)
-                                    }
+                                    // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
+                                    value in                                         proxy.scrollTo(value, anchor: .bottom)
                                 })
                             }
                             
