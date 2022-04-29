@@ -138,21 +138,23 @@ struct ContentView: View {
             self.latestMessage = message
         }
         }, pushCommunicaionHistory: { communicationItem in
-            self.communicationHistory.append(communicationItem)
-            
-            var cis: [CommunicationHistoryDisplayItem] = []
-            for i in max(0, self.communicationHistory.count - 100)..<self.communicationHistory.count {
-                let ci = self.communicationHistory[i]
-                let prefix: String
-                switch ci.direction {
-                case .recv:
-                    prefix = "< "
-                case .send:
-                    prefix = "> "
+            DispatchQueue.main.async {
+                self.communicationHistory.append(communicationItem)
+                
+                var cis: [CommunicationHistoryDisplayItem] = []
+                for i in max(0, self.communicationHistory.count - 100)..<self.communicationHistory.count {
+                    let ci = self.communicationHistory[i]
+                    let prefix: String
+                    switch ci.direction {
+                    case .recv:
+                        prefix = "< "
+                    case .send:
+                        prefix = "> "
+                    }
+                    cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
                 }
-                cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
+                commuicationHistoryDisplay = cis
             }
-            commuicationHistoryDisplay = cis
         }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
             self.matchStatus = matchStatus
             var mh: [MoveHistoryDisplayItem] = []
@@ -283,8 +285,7 @@ struct ContentView: View {
         Group {
             if let matchStatus = matchStatus {
                 HStack {
-                    Text(matchStatus.position.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
-                        .padding()
+                    BoardView(matchStatus: matchStatus)
                     VStack {
                         Text(latestMessage)
                         Text(gameStateToString(gameState: matchStatus.gameState)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))

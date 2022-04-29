@@ -52,7 +52,7 @@ class CSAClient {
     }
     
     private func sendMatchStatus(gameState: MatchStatus.GameState) {
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: gameState, players: players, position: position, moveHistory: moveHistory))
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: gameState, players: players, position: position.copy(), moveHistory: moveHistory))
     }
     
     func startConnection() {

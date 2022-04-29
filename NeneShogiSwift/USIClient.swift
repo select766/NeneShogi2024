@@ -136,7 +136,7 @@ class USIClient {
                 
                 let players: [String?] = position.sideToMove == PColor.BLACK ? ["my", "opponent"] : ["opponent", "my"]
                 
-                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, players: players, position: positionForDetailedMove, moveHistory: moveHistory))
+                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, players: players, position: positionForDetailedMove.copy(), moveHistory: moveHistory))
             }
             break
         case "go":
