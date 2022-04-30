@@ -21,3 +21,17 @@ with open("NeneShogiSwift/PositionTestCase.txt", "w") as f:
     for case in cases:
         f.write(json.dumps({"sfen": case["sfen"], "legalMoves": case["legal_moves"], "positionCommand": case["position_command"], "inCheck": case["in_check"]}) + "\n")
 ```
+
+## ログの取り出し
+iPadをMacに接続した状態で以下のコマンドを実行する
+
+```
+sudo log collect --device --last 1d
+```
+
+ねね将棋のログを抽出して標準出力に表示
+
+```
+log show --archive system_logs.logarchive --predicate '(subsystem IN {"jp.outlook.select766.NeneShogiSwift"})' --last 1d
+```
+

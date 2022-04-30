@@ -1,5 +1,8 @@
 import Foundation
 import Network
+import os
+
+let logger = Logger(subsystem: "jp.outlook.select766.NeneShogiSwift", category: "csa")
 
 enum CSAClientState {
     case waiting
@@ -62,6 +65,7 @@ class CSAClient {
         self.matchManager.displayMessage("connecting to CSA server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
+            logger.log("stateUpdateHandler: \(String(describing: newState))")
             print("stateUpdateHandler", newState)
             switch newState {
             case .ready:
@@ -91,8 +95,8 @@ class CSAClient {
     func startRecv() {
         connection?.receive(minimumIncompleteLength: 0, maximumLength: 65535, completion: {(data,context,flag,error) in
             if let error = error {
+                logger.error("receive error: \(String(describing: error))")
                 self.matchManager.displayMessage("CSA receive error \(error)")
-                print("receive error", error)
             } else {
                 if let data = data {
                     self.recvBuffer.append(data)
@@ -119,7 +123,7 @@ class CSAClient {
                     self.startRecv()
                 } else {
                     // コネクション切断で発生
-                    print("zero recv")
+                    logger.error("receive zero")
                     self.matchManager.displayMessage("CSA disconnected")
                     self.connection?.cancel()
                 }
@@ -128,8 +132,8 @@ class CSAClient {
     }
     
     func handleCSACommand(command: String) {
+        logger.log("receive command: \(command)")
         self.matchManager.displayMessage("CSA recv: '\(command)'")
-        print("recv: '\(command)'")
         switch state {
         case .waiting:
             _handleCSACommandWaiting(command: command)
@@ -332,14 +336,15 @@ class CSAClient {
     func _send(messageWithNewline: String) {
         for line in messageWithNewline.components(separatedBy: "\n") {
             if line.count > 0 {
+                logger.log("send: \(line)")
                 matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: line))
             }
         }
         lastSendTime = Date()
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {
+                logger.error("send error: \(String(describing: error))")
                 print("cannot send", messageWithNewline)
-                print("Error in send", error)
             }
         })
         
