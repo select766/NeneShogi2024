@@ -37,23 +37,6 @@ func saveCSAConfigSave(csaConfigSave: CSAConfigSave) {
 }
 
 
-func pvsToString(pvs: [SearchTreeRootForVisualize]) -> String {
-    var s = ""
-    for pv in pvs {
-        let rm = pv.rootMoveNode
-        // winrateMeanは、指したあとの手番の勝率なので反転させる
-        s += "\(rm.moveFromParent.toPrintString()) \(Int((1.0 - rm.winrateMean) * 100))%±\(Int(rm.winrateStd * 100)) / \(rm.moveCount)\n"
-        for child in pv.childNodes {
-            s += "└\(child.moveFromParent.toPrintString())"
-            for cpv in child.pv.prefix(3) {
-                s += "\(cpv.toPrintString())"
-            }
-            s += "\n"
-        }
-    }
-    return s
-}
-
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
@@ -251,9 +234,10 @@ struct ContentView: View {
             if let matchStatus = matchStatus {
                 VStack {
                     ScoreBarView(matchStatus: matchStatus)
+                    Spacer()
                     HStack {
                         BoardView(matchStatus: matchStatus)
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .center) {
                             if debugView {
                                 ScrollView(.vertical, showsIndicators: true) {
                                     ScrollViewReader {
@@ -270,13 +254,12 @@ struct ContentView: View {
                                 }.frame(maxWidth: .infinity, maxHeight: 120.0)
                             } else {
                                 if let searchProgress = searchProgress {
-                                    Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
-                                    
-                                    Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                    PVView(searchProgress: searchProgress)
                                 }
                                 
                                 MoveHistoryView(matchStatus: matchStatus)
                             }
+                            Spacer()
                             Button(action: {
                                 debugView = !debugView
                             }) {
