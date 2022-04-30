@@ -3,14 +3,6 @@ import SwiftUI
 let userDefaultsCSAConfigSaveKey = "csaConfigSave"
 let userDefaultsUSIServerIpAddressKey = "usiServerIpAddress"
 
-struct MoveHistoryDisplayItem: Identifiable {
-    let id: Int
-    let tekazu: Int
-    let detailedMove: DetailedMove
-    let usedTime: Int?
-    let totalUsedTime: Int
-    let scoreCp: Int?
-}
 
 struct CommunicationHistoryDisplayItem: Identifiable {
     let id: Int
@@ -66,7 +58,6 @@ struct ContentView: View {
     @State var latestMessage: String = "Press Start"
     @State var matchManager: MatchManager?
     @State var matchStatus: MatchStatus? = nil
-    @State var moveHistory: [MoveHistoryDisplayItem] = []
     @State var communicationHistory: [CommunicationItem] = []
     @State var commuicationHistoryDisplay: [CommunicationHistoryDisplayItem] = []
     @State var searchProgress: SearchProgress? = nil
@@ -85,6 +76,7 @@ struct ContentView: View {
     @State var csaTimeTotalSec: String
     @State var csaTimeIncrementSec: String
     @State var csaShowLoginPassword: Bool = false
+    @State var debugView = false
     
     init() {
         let csaConfigSave = loadCSAConfigSave() ?? CSAConfigSave(configs: [:], lastUsedConfig: nil)
@@ -144,20 +136,6 @@ struct ContentView: View {
             }
         }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
             self.matchStatus = matchStatus
-            var mh: [MoveHistoryDisplayItem] = []
-            var totalUsedTimes = [0.0, 0.0]
-            for i in 0..<matchStatus.moveHistory.count {
-                let mi = matchStatus.moveHistory[i]
-                totalUsedTimes[mi.detailedMove.sideToMove.color] += mi.usedTime ?? 0.0
-                mh.append(MoveHistoryDisplayItem(
-                    id: i,
-                    tekazu: i+1,
-                    detailedMove: mi.detailedMove, usedTime: mi.usedTime != nil ? Int(mi.usedTime!) : nil,
-                    totalUsedTime: Int(totalUsedTimes[mi.detailedMove.sideToMove.color]),
-                    scoreCp: mi.scoreCp
-                ))
-            }
-            self.moveHistory = mh
         }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
             self.searchProgress = searchProgress
         }})
@@ -275,45 +253,39 @@ struct ContentView: View {
                     ScoreBarView(matchStatus: matchStatus)
                     HStack {
                         BoardView(matchStatus: matchStatus)
-                        VStack {
-                            if let searchProgress = searchProgress {
-                                Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                        VStack(alignment: .leading) {
+                            if debugView {
+                                ScrollView(.vertical, showsIndicators: true) {
+                                    ScrollViewReader {
+                                        proxy in
+                                        VStack {
+                                            ForEach(commuicationHistoryDisplay) {cItem in
+                                                Text(cItem.displayString).id(cItem.id)
+                                            }
+                                        }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
+                                            value in proxy.scrollTo(value, anchor: .bottom)
+                                        })
+                                    }
+                                    
+                                }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                            } else {
+                                if let searchProgress = searchProgress {
+                                    Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                    
+                                    Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                }
                                 
-                                Text(pvsToString(pvs: searchProgress.pvs)).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+                                MoveHistoryView(matchStatus: matchStatus)
                             }
-                            Text("指し手 消費時間/合計").padding()
-                            ScrollView(.vertical, showsIndicators: true) {
-                                ScrollViewReader {
-                                    proxy in
-                                    VStack {
-                                        ForEach(moveHistory) {moveHistoryItem in
-                                            Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
-                                        }
-                                    }.onChange(of: (self.matchStatus?.moveHistory.count ?? 0) - 1, perform: {
-                                        // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
-                                        value in                                         proxy.scrollTo(value, anchor: .bottom)
-                                    })
-                                }
-                                
-                            }.frame(maxWidth: .infinity, maxHeight: 120.0)
-                            
-                            ScrollView(.vertical, showsIndicators: true) {
-                                ScrollViewReader {
-                                    proxy in
-                                    VStack {
-                                        ForEach(commuicationHistoryDisplay) {cItem in
-                                            Text(cItem.displayString).id(cItem.id)
-                                        }
-                                    }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
-                                        value in proxy.scrollTo(value, anchor: .bottom)
-                                    })
-                                }
-                                
-                            }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                            Button(action: {
+                                debugView = !debugView
+                            }) {
+                                Text("Debug")
+                            }
                         }
                     }
                 }
-
+                
                 
             } else {
                 VStack {
