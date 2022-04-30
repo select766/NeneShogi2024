@@ -28,6 +28,7 @@ class CSAClient {
     var goRunning = false
     var lastGoScoreCp: Int? = nil
     var players: [String?] = [nil, nil]
+    var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
     
     init(matchManager: MatchManager, csaConfig: CSAConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -167,6 +168,7 @@ class CSAClient {
                     self.position.setHirate()
                     self.sendCSA(message: "AGREE")
                     
+                    self.csaKifu = CSAKifu(players: self.players)
                     self.sendMatchStatus(gameState: .playing)
                 }
             })
@@ -184,6 +186,7 @@ class CSAClient {
             mayneedgo = true
             lastGoScoreCp = nil
         } else if command.starts(with: "+") || command.starts(with: "-") {
+            csaKifu?.appendMove(moveCSAWithTime: command)
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
                 print("parsed move: \(move.toUSIString())")
@@ -221,9 +224,11 @@ class CSAClient {
                 print("parse move failed")
             }
         } else if command.starts(with: "%TORYO") {
-            // プロトコル説明では、%TORYO,T10のように消費時間が来るとの説明があるが、実際の実装では消費時間情報はついていない。念のため先頭一致で処理する
+            // プロトコル説明では、%TORYO,T10のように消費時間が来るとの説明があるが、floodgateの実装では消費時間情報はついていない。選手権サーバではついている。念のため先頭一致で処理する
+            csaKifu?.appendMove(moveCSAWithTime: command)
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if command.starts(with: "%KACHI") {
+            csaKifu?.appendMove(moveCSAWithTime: command)
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN", "#CENSORED"].contains(command) {
             state = .end(gameResult: command)
@@ -236,6 +241,8 @@ class CSAClient {
             player.stop()
             self.sendCSA(message: "LOGOUT")
             self.connection?.cancel()
+            csaKifu?.save()
+            csaKifu = nil
         }
         if mayneedgo {
             if myColor == position.sideToMove {

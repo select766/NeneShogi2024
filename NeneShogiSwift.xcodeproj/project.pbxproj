@@ -42,6 +42,7 @@
 		AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC87E281CDE8B00517C11 /* MoveHistoryView.swift */; };
 		AACEC881281CE5AD00517C11 /* PVView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC880281CE5AC00517C11 /* PVView.swift */; };
 		AACEC883281D0D0500517C11 /* ScoreChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC882281D0D0300517C11 /* ScoreChartView.swift */; };
+		AACEC885281D369200517C11 /* CSAKifu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC884281D369200517C11 /* CSAKifu.swift */; };
 		AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E6F27EEB607007BF351 /* SearchBench.swift */; };
 		AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7127EECB83007BF351 /* CSAClient.swift */; };
 		AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */; };
@@ -67,6 +68,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -106,6 +108,7 @@
 		AACEC87E281CDE8B00517C11 /* MoveHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveHistoryView.swift; sourceTree = "<group>"; };
 		AACEC880281CE5AC00517C11 /* PVView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PVView.swift; sourceTree = "<group>"; };
 		AACEC882281D0D0300517C11 /* ScoreChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreChartView.swift; sourceTree = "<group>"; };
+		AACEC884281D369200517C11 /* CSAKifu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAKifu.swift; sourceTree = "<group>"; };
 		AAF48E6F27EEB607007BF351 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		AAF48E7127EECB83007BF351 /* CSAClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAClient.swift; sourceTree = "<group>"; };
 		AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet15x224SwishBatch.mlmodel; sourceTree = "<group>"; };
@@ -162,6 +165,7 @@
 		AA90C4D727B8BED700ED174E /* NeneShogiSwift */ = {
 			isa = PBXGroup;
 			children = (
+				AA05484F281D3C490032AF12 /* Info.plist */,
 				AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */,
 				AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */,
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
@@ -190,6 +194,7 @@
 				AACE1F7E27EB1C940099667A /* UCTNode.swift */,
 				AAF48E6F27EEB607007BF351 /* SearchBench.swift */,
 				AAF48E7127EECB83007BF351 /* CSAClient.swift */,
+				AACEC884281D369200517C11 /* CSAKifu.swift */,
 				AACEC872281394AF00517C11 /* CSAConfig.swift */,
 				AACEC86E280C18B300517C11 /* SearchProgress.swift */,
 				AACEC8762813DC1900517C11 /* MatchStatus.swift */,
@@ -360,6 +365,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AACEC885281D369200517C11 /* CSAKifu.swift in Sources */,
 				AA9C013527C1C88600BB71E0 /* Square.swift in Sources */,
 				AA995E6727CB1DE800D1B5C2 /* DNNInputTestCase.swift in Sources */,
 				AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */,
@@ -556,6 +562,8 @@
 				DEVELOPMENT_TEAM = 26639CRUMF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeneShogiSwift/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -585,6 +593,8 @@
 				DEVELOPMENT_TEAM = 26639CRUMF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NeneShogiSwift/Info.plist;
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
