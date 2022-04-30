@@ -207,6 +207,18 @@ struct ContentView: View {
             }
         }
     }
+
+    func makeBook() {
+        DispatchQueue.global(qos: .background).async {
+            let bookMaker = BookMaker()
+            
+            bookMaker.makeBook { message in
+                DispatchQueue.main.async {
+                    self.latestMessage = message
+                }
+            }
+        }
+    }
     
     func formToCSAConfig() -> CSAConfig {
         CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, timeTotalSec: Double(csaTimeTotalSec) ?? 300.0, timeIncrementSec: Double(csaTimeIncrementSec) ?? 10.0)
@@ -369,6 +381,9 @@ struct ContentView: View {
                         }.padding()
                         Button(action: testDNNInput) {
                             Text("Test dnn input")
+                        }.padding()
+                        Button(action: makeBook) {
+                            Text("Make book")
                         }.padding()
                     }
                     Text(testProgress)

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA054851281D41080032AF12 /* BookMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA054850281D41080032AF12 /* BookMaker.swift */; };
 		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
@@ -69,6 +70,7 @@
 
 /* Begin PBXFileReference section */
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AA054850281D41080032AF12 /* BookMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMaker.swift; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -187,6 +189,7 @@
 				AA995E6627CB1DE700D1B5C2 /* DNNInputTestCase.swift */,
 				AACE1F7C27EB1C750099667A /* MCTSPlayer.swift */,
 				AACEC87828181D0600517C11 /* Book.swift */,
+				AA054850281D41080032AF12 /* BookMaker.swift */,
 				AACE1F8027EB240E0099667A /* RandomPlayer.swift */,
 				AACE1F8427EB26C50099667A /* PolicyPlayer.swift */,
 				AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */,
@@ -385,6 +388,7 @@
 				AACEC8752813D72000517C11 /* USIConfig.swift in Sources */,
 				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
 				AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */,
+				AA054851281D41080032AF12 /* BookMaker.swift in Sources */,
 				AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
 				AACEC87928181D0700517C11 /* Book.swift in Sources */,
