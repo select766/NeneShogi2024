@@ -8,6 +8,24 @@ struct MoveHistoryView: View {
         let usedTime: Int?
         let totalUsedTime: Int
         let scoreCp: Int?
+        
+        private func timeToString(sec: Int) -> String {
+            return "\(String(format: "%02d", sec / 60)):\(String(format: "%02d", sec % 60))"
+        }
+        
+        func toPrintString() -> String {
+            let scoreFormatter = NumberFormatter()
+            scoreFormatter.numberStyle = .none
+            scoreFormatter.positivePrefix = "+" // 正の評価値にプラスをつける
+            var scoreStr = ""
+            if let scoreCp = scoreCp {
+                if let formatted = scoreFormatter.string(for: scoreCp) {
+                    scoreStr = " / \(formatted)"
+                }
+            }
+            
+            return "\(String(format: "%3d", tekazu)) \(detailedMove.toPrintString()) \(usedTime != nil ? timeToString(sec: usedTime!) : "*") / \(timeToString(sec: totalUsedTime))\(scoreStr)"
+        }
     }
     
     var matchStatus: MatchStatus
@@ -31,13 +49,13 @@ struct MoveHistoryView: View {
     var body: some View {
         let moveHistory = toMoveHistory()
         VStack {
-            Text("指し手 消費時間/合計")
+            Text("指し手 消費時間/合計/評価値")
             ScrollView(.vertical, showsIndicators: true) {
                 ScrollViewReader {
                     proxy in
                     VStack(alignment: .leading) {
                         ForEach(moveHistory) {moveHistoryItem in
-                            Text("\(moveHistoryItem.tekazu): \(moveHistoryItem.detailedMove.toPrintString()) - \(moveHistoryItem.usedTime != nil ? String(moveHistoryItem.usedTime!) : "*") / \(moveHistoryItem.totalUsedTime) \(moveHistoryItem.scoreCp != nil ? String(moveHistoryItem.scoreCp!) : "")").id(moveHistoryItem.id)
+                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium))).lineLimit(1)
                         }
                     }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
                         // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
@@ -46,7 +64,7 @@ struct MoveHistoryView: View {
                     })
                 }
                 
-            }.frame(maxWidth: .infinity, maxHeight: 120.0)
+            }.frame(maxWidth: .infinity, maxHeight: 300.0)
         }
     }
 }
