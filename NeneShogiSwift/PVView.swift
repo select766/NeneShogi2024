@@ -55,7 +55,7 @@ struct PVView: View {
         let div = pow(10.0, scale)
         for i in 0..<items.count {
             items[i].nodesRatio /= div
-            items[i].color = Color(hue: hue, saturation: items[i].isSub ? 0.25 : 0.5, brightness: 1.0)
+            items[i].color = Color(hue: hue, saturation: items[i].isSub ? 0.125 : 0.25, brightness: 1.0)
         }
         return items
     }

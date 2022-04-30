@@ -64,7 +64,7 @@ struct MoveHistoryView: View {
                     })
                 }
                 
-            }.frame(maxWidth: .infinity, maxHeight: 300.0)
+            }.frame(maxWidth: .infinity, maxHeight: 240.0)
         }
     }
 }

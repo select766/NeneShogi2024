@@ -234,6 +234,7 @@ struct ContentView: View {
             if let matchStatus = matchStatus {
                 VStack {
                     ScoreBarView(matchStatus: matchStatus)
+                    ScoreChartView(matchStatus: matchStatus)
                     Spacer()
                     HStack {
                         BoardView(matchStatus: matchStatus)
