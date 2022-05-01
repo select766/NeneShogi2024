@@ -42,12 +42,12 @@ struct ScoreBarView: View {
         HStack {
             Text("▲\(matchStatus.players[0] ?? "?")").frame(maxWidth: 160)
             if case .playing = matchStatus.gameState {
-                Text("\(blackWinratePercent) %").frame(width: 80)
+                Text("\(blackWinratePercent) %").font(.title).frame(width: 80)
                 ZStack(alignment: .topLeading) {
                     Rectangle().fill(Color.white).frame(width: 600, height: 24)
                     Rectangle().fill(Color.black).frame(width: CGFloat(600 * blackWinratePercent / 100), height: 24)
                 }
-                Text("\(100 - blackWinratePercent) %").frame(width: 80)
+                Text("\(100 - blackWinratePercent) %").font(.title).frame(width: 80)
             } else {
                 Text(gameStateToString(gameState: matchStatus.gameState))
             }

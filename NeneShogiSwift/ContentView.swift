@@ -104,7 +104,7 @@ struct ContentView: View {
                 self.communicationHistory.append(communicationItem)
                 
                 var cis: [CommunicationHistoryDisplayItem] = []
-                for i in max(0, self.communicationHistory.count - 100)..<self.communicationHistory.count {
+                for i in max(0, self.communicationHistory.count - 1000)..<self.communicationHistory.count {
                     let ci = self.communicationHistory[i]
                     let prefix: String
                     switch ci.direction {
@@ -255,7 +255,7 @@ struct ContentView: View {
                                 ScrollView(.vertical, showsIndicators: true) {
                                     ScrollViewReader {
                                         proxy in
-                                        VStack {
+                                        VStack(alignment: .leading) {
                                             ForEach(commuicationHistoryDisplay) {cItem in
                                                 Text(cItem.displayString).id(cItem.id)
                                             }
@@ -264,7 +264,7 @@ struct ContentView: View {
                                         })
                                     }
                                     
-                                }.frame(maxWidth: .infinity, maxHeight: 120.0)
+                                }.frame(maxWidth: .infinity, maxHeight: 600.0)
                             } else {
                                 if let searchProgress = searchProgress {
                                     PVView(searchProgress: searchProgress)
@@ -280,7 +280,7 @@ struct ContentView: View {
                             }
                         }
                     }
-                }
+                }.background(Color(red: 0.8, green: 0.8, blue: 0.8))
                 
                 
             } else {

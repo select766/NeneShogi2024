@@ -82,7 +82,7 @@ struct PVView: View {
             }
 
             Spacer()
-        }.padding(pad).border(Color.gray, width: pad).frame(width: width, height: 320)
+        }.padding(pad).background(Color.white).border(Color.gray, width: pad).frame(width: width, height: 320)
     }
 }
 

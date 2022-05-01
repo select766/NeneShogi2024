@@ -55,7 +55,7 @@ struct MoveHistoryView: View {
                     proxy in
                     VStack(alignment: .leading) {
                         ForEach(moveHistory) {moveHistoryItem in
-                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium))).lineLimit(1)
+                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
                         }
                     }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
                         // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
@@ -65,7 +65,7 @@ struct MoveHistoryView: View {
                 }
                 
             }.frame(maxWidth: .infinity, maxHeight: 240.0)
-        }
+        }.background(Color.white)
     }
 }
 
