@@ -3,6 +3,15 @@
 iPad / iPhone向け将棋AIです。開発中でまだ動きません。
 
 # メモ
+## テストケースデータの解凍
+巨大なテキストファイルがあるため、解凍が必要
+
+```
+cd NeneShogiSwift
+gzip -k DNNInputTestCase.txt.gz
+gzip -k PositionTestCase.txt.gz
+```
+
 ## 合法手生成テストデータの作成
 
 `NeneShogiSwift/PositionTestCase.txt`に置くことでビルド時にアプリに取り込まれる
