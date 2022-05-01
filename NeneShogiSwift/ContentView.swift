@@ -294,7 +294,7 @@ struct ContentView: View {
                         }) {
                             Text("Start USI")
                         }
-                        TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
+                        TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
                     }.padding()
                     VStack {
                         Text("CSA client mode")
