@@ -74,8 +74,8 @@ struct PVView: View {
                     ZStack(alignment: .topLeading) {
                         Rectangle().fill(item.color).frame(width: CGFloat(item.nodesRatio) * contentWidth, height: height)
                         HStack(alignment: .bottom) {
-                            Text(item.message).font(Font(UIFont.monospacedDigitSystemFont(ofSize: height, weight: .medium))).lineLimit(1).frame(alignment: .leading)
-                            Text(item.percent).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium))).lineLimit(1).frame(alignment: .leading)
+                            Text(item.message).font(Font(UIFont.monospacedDigitSystemFont(ofSize: height, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1).frame(alignment: .leading)
+                            Text(item.percent).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1).frame(alignment: .leading)
                         }.frame(width: contentWidth, height: height, alignment: .leading)
                     }.frame(width: contentWidth, height: height)
                 }
