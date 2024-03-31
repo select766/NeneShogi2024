@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ScoreChartView: View {
+    let gridSize = CGFloat(32)
     var matchStatus: MatchStatus
     
     struct ChartData {
@@ -25,27 +26,27 @@ struct ScoreChartView: View {
     private func getChartData() -> ChartData {
         // 普通だと100手で右端に到達するので、101手以上なら横幅を2で割る、201手以上なら3で割るというようにして収める
         let units = max(ceil(Double(matchStatus.moveHistory.count) / 100.0), 1.0)
-        let scale = 1.0 / units
-        let barWidth = CGFloat(10.0 * scale)
+        let scale = CGFloat(1.0 / units)
+        let barWidth = CGFloat(gridSize * 0.15625 * scale)
         var items: [ChartData.ChartDataItem] = []
         var lines: [ChartData.ChartVerticalLineItem] = []
         for (i, moveItem) in matchStatus.moveHistory.enumerated() {
             if i % 10 == 0 {
-                lines.append(ChartData.ChartVerticalLineItem(id: i, position: CGPoint(x: 40.0 + barWidth * CGFloat(i), y: 40.0), size: CGSize(width: 1, height: 80), dashed: i % 100 != 0))
+                lines.append(ChartData.ChartVerticalLineItem(id: i, position: CGPoint(x: gridSize * 0.625 + barWidth * CGFloat(i), y: gridSize * 0.625), size: CGSize(width: 1, height: gridSize * 1.25), dashed: i % 100 != 0))
             }
             if let scoreCp = moveItem.scoreCp {
                 // scoreCpは手番側から見た値なので先手から見た値に統一
                 let scoreCpBlack = moveItem.detailedMove.sideToMove == PColor.BLACK ? scoreCp : -scoreCp
                 let height: CGFloat
                 // positionで指定するのは中央の位置
-                let posX = CGFloat(barWidth * CGFloat(i) + 40.0) + barWidth / 2.0
+                let posX = CGFloat(barWidth * CGFloat(i) + gridSize * 0.625) + barWidth / 2.0
                 let posY: CGFloat
                 if scoreCpBlack >= 0 {
-                    height = min(CGFloat(Double(scoreCpBlack) / 1000.0 * 40.0), 40.0)
-                    posY = 40.0 - height + height / 2.0
+                    height = min(CGFloat(Double(scoreCpBlack) / 1000.0 * gridSize * 0.625), gridSize * 0.625)
+                    posY = gridSize * 0.625 - height + height / 2.0
                 } else {
-                    height = min(CGFloat(-Double(scoreCpBlack) / 1000.0 * 40.0), 40.0)
-                    posY = 40.0 + height / 2.0
+                    height = min(CGFloat(-Double(scoreCpBlack) / 1000.0 * gridSize * 0.625), gridSize * 0.625)
+                    posY = gridSize * 0.625 + height / 2.0
                 }
                 items.append(ChartData.ChartDataItem(id: i, color: moveItem.detailedMove.sideToMove == PColor.BLACK ? Color.black : Color.white, position: CGPoint(x: posX, y: posY), size: CGSize(width: barWidth, height: height)))
             }
@@ -78,19 +79,19 @@ struct ScoreChartView: View {
             
             HLine()
                 .stroke(Color.gray, style: StrokeStyle(lineWidth: 1, dash: [5]))
-                .frame(width: 1080 - 40, height: 1)
-                .position(x: (1080 + 40) / 2, y: 20)
+                .frame(width: gridSize * (16.875 - 0.625), height: 1)
+                .position(x: gridSize * (16.875 + 0.625) / 2, y: gridSize * 0.3125)
             HLine()
                 .stroke(Color.gray, style: StrokeStyle(lineWidth: 1))
-                .frame(width: 1080 - 40, height: 1)
-                .position(x: (1080 + 40) / 2, y: 40)
+                .frame(width: gridSize * (16.875 - 0.625), height: 1)
+                .position(x: gridSize * (16.875 + 0.625) / 2, y: gridSize * 0.625)
             HLine()
                 .stroke(Color.gray, style: StrokeStyle(lineWidth: 1, dash: [5]))
-                .frame(width: 1080 - 40, height: 1)
-                .position(x: (1080 + 40) / 2, y: 60)
-            Text("500").font(.footnote).frame(width: 36, height: 20, alignment: .trailing).position(x: 20, y: 20)
-            Text("0").font(.footnote).frame(width: 36, height: 20, alignment: .trailing).position(x: 20, y: 40)
-            Text("-500").font(.footnote).frame(width: 36, height: 20, alignment: .trailing).position(x: 20, y: 60)
+                .frame(width: gridSize * (16.875 - 0.625), height: 1)
+                .position(x: gridSize * (16.875 + 0.625) / 2, y: gridSize * 0.9375)
+            Text("500").font(.system(size: gridSize * 0.125)).frame(width: gridSize * 0.5625, height: gridSize * 0.3125, alignment: .trailing).position(x: gridSize * 0.3125, y: gridSize * 0.3125)
+            Text("0").font(.system(size: gridSize * 0.125)).frame(width: gridSize * 0.5625, height: gridSize * 0.3125, alignment: .trailing).position(x: gridSize * 0.3125, y: gridSize * 0.625)
+            Text("-500").font(.system(size: gridSize * 0.125)).frame(width: gridSize * 0.5625, height: gridSize * 0.3125, alignment: .trailing).position(x: gridSize * 0.3125, y: gridSize * 0.9375)
             ForEach(data.items) {
                 item in
                 Rectangle().fill(item.color).frame(width: item.size.width, height: item.size.height, alignment: .topLeading).position(item.position)
@@ -108,7 +109,7 @@ struct ScoreChartView: View {
                         .frame(width: lineItem.size.width, height: lineItem.size.height)
                         .position(lineItem.position)
             }
-        }.frame(width: 1080, height: 80).background(Color(red: 0.5, green: 1.0, blue: 1.0))
+        }.frame(width: gridSize * 16.875, height: gridSize * 1.25).background(Color(red: 0.5, green: 1.0, blue: 1.0))
     }
 }
 

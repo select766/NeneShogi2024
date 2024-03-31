@@ -222,110 +222,112 @@ struct ContentView: View {
             if matchRunning {
                 MatchView(serverType: serverType, usiConfig: usiConfig, csaConfig: csaConfig)
             } else {
-                VStack {
-                    Text(latestMessage)
-                        .padding()
+                ScrollView {
                     VStack {
-                        Text("USI client mode")
-                        Button(action: {
-                            start(serverType: "USI")
-                        }) {
-                            Text("Start USI")
-                        }
-                        TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
-                    }.padding()
-                    VStack {
-                        Text("CSA client mode")
-                        TextField("Config name", text: $csaConfigName).frame(width: 100.0, height: 20.0)
-                        Group {
-                            HStack {
-                                Text("IP")
-                                TextField("IP", text: $csaServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
+                        Text(latestMessage)
+                            .padding()
+                        VStack {
+                            Text("USI client mode")
+                            Button(action: {
+                                start(serverType: "USI")
+                            }) {
+                                Text("Start USI")
                             }
-                            HStack {
-                                Text("Port")
-                                TextField("Port", text: $csaServerPort).keyboardType(.numberPad).disableAutocorrection(true).frame(width: 40.0, height: 20.0)
+                            TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
+                        }.padding()
+                        VStack {
+                            Text("CSA client mode")
+                            TextField("Config name", text: $csaConfigName).frame(width: 100.0, height: 20.0)
+                            Group {
+                                HStack {
+                                    Text("IP")
+                                    TextField("IP", text: $csaServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
+                                }
+                                HStack {
+                                    Text("Port")
+                                    TextField("Port", text: $csaServerPort).keyboardType(.numberPad).disableAutocorrection(true).frame(width: 40.0, height: 20.0)
+                                }
+                                HStack {
+                                    Toggle("Reconnect", isOn: $csaReconnect).frame(width: 200.0, height: 20.0)
+                                }
                             }
-                            HStack {
-                                Toggle("Reconnect", isOn: $csaReconnect).frame(width: 200.0, height: 20.0)
-                            }
-                        }
-                        Group {
-                            HStack {
-                                Text("Login name")
-                                TextField("Login name", text: $csaLoginName).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
-                            }
-                            HStack {
-                                Text("Login password")
-                                Group {
-                                    if csaShowLoginPassword {
-                                        TextField("Login password", text: $csaLoginPassword).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
-                                        
-                                    } else {
-                                        SecureField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
+                            Group {
+                                HStack {
+                                    Text("Login name")
+                                    TextField("Login name", text: $csaLoginName).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
+                                }
+                                HStack {
+                                    Text("Login password")
+                                    Group {
+                                        if csaShowLoginPassword {
+                                            TextField("Login password", text: $csaLoginPassword).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
+                                            
+                                        } else {
+                                            SecureField("Login password", text: $csaLoginPassword).frame(width: 200.0, height: 20.0)
+                                        }
                                     }
+                                }
+                                HStack {
+                                    Toggle("Show password", isOn: $csaShowLoginPassword).frame(width: 200.0, height: 20.0)
+                                }
+                            }
+                            Group {
+                                HStack {
+                                    Toggle("Ponder", isOn: $csaPonder).frame(width: 200.0, height: 20.0)
+                                }
+                                HStack {
+                                    Text("Total time")
+                                    TextField("", text: $csaTimeTotalSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
+                                }
+                                HStack {
+                                    Text("Increment time")
+                                    TextField("", text: $csaTimeIncrementSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
                                 }
                             }
                             HStack {
-                                Toggle("Show password", isOn: $csaShowLoginPassword).frame(width: 200.0, height: 20.0)
+                                Button(action: onSaveCSAConfigClick) {
+                                    Text("Save")
+                                }
+                                Button(action: onDeleteCSAConfigClick) {
+                                    Text("Delete")
+                                }
+                                Button(action: onStartCSAClick) {
+                                    Text("Start CSA")
+                                }
                             }
-                        }
-                        Group {
-                            HStack {
-                                Toggle("Ponder", isOn: $csaPonder).frame(width: 200.0, height: 20.0)
+                            Picker(selection: $csaConfigSelected, label: Text("Saved servers")) {
+                                ForEach(csaConfigSaveList) {
+                                    saveListItem in Text(saveListItem.name).tag(saveListItem.id)
+                                }
+                            }.onChange(of: csaConfigSelected) {
+                                selectedKey in
+                                if let lastUsedConfig = csaConfigSave.configs[selectedKey] {
+                                    csaConfigName = selectedKey
+                                    csaServerIpAddress = lastUsedConfig.csaServerIpAddress
+                                    csaServerPort = String(lastUsedConfig.csaServerPort)
+                                    csaReconnect = lastUsedConfig.reconnect
+                                    csaLoginName = lastUsedConfig.loginName
+                                    csaLoginPassword = lastUsedConfig.loginPassword
+                                    csaPonder = lastUsedConfig.ponder
+                                    csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
+                                    csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
+                                }
                             }
-                            HStack {
-                                Text("Total time")
-                                TextField("", text: $csaTimeTotalSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
-                            }
-                            HStack {
-                                Text("Increment time")
-                                TextField("", text: $csaTimeIncrementSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
-                            }
-                        }
+                        }.padding()
                         HStack {
-                            Button(action: onSaveCSAConfigClick) {
-                                Text("Save")
-                            }
-                            Button(action: onDeleteCSAConfigClick) {
-                                Text("Delete")
-                            }
-                            Button(action: onStartCSAClick) {
-                                Text("Start CSA")
-                            }
+                            Button(action: testPosition) {
+                                Text("Test position")
+                            }.padding()
+                            Button(action: testDNNInput) {
+                                Text("Test dnn input")
+                            }.padding()
+                            Button(action: makeBook) {
+                                Text("Make book")
+                            }.padding()
                         }
-                        Picker(selection: $csaConfigSelected, label: Text("Saved servers")) {
-                            ForEach(csaConfigSaveList) {
-                                saveListItem in Text(saveListItem.name).tag(saveListItem.id)
-                            }
-                        }.onChange(of: csaConfigSelected) {
-                            selectedKey in
-                            if let lastUsedConfig = csaConfigSave.configs[selectedKey] {
-                                csaConfigName = selectedKey
-                                csaServerIpAddress = lastUsedConfig.csaServerIpAddress
-                                csaServerPort = String(lastUsedConfig.csaServerPort)
-                                csaReconnect = lastUsedConfig.reconnect
-                                csaLoginName = lastUsedConfig.loginName
-                                csaLoginPassword = lastUsedConfig.loginPassword
-                                csaPonder = lastUsedConfig.ponder
-                                csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
-                                csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
-                            }
-                        }
-                    }.padding()
-                    HStack {
-                        Button(action: testPosition) {
-                            Text("Test position")
-                        }.padding()
-                        Button(action: testDNNInput) {
-                            Text("Test dnn input")
-                        }.padding()
-                        Button(action: makeBook) {
-                            Text("Make book")
-                        }.padding()
+                        Text(testProgress)
+                            .padding()
                     }
-                    Text(testProgress)
-                        .padding()
                 }
             }
         }

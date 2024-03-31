@@ -1,11 +1,16 @@
 import SwiftUI
 
 struct BoardView: View {
+    // Boardのwidth: gridSize * 12, height: gridSize * 10
+    // iPhone 15 Pro: 852 x 393
+    let gridSize = CGFloat(32)
     struct BoardViewPieceItem: Identifiable {
         let id: Int
+        let gridSize: CGFloat
         let square: Square? // nilなら持ち駒
         let handCount: Int
         let piece: Piece
+        
         var color: PColor {
             get {
                 return piece.getColor()
@@ -20,15 +25,16 @@ struct BoardView: View {
             get {
                 if let square = square {
                     // 盤上
-                    return BoardView.squareToPosition(square: square)
+                    return squareToPosition(square: square)
                 } else {
                     // 持ち駒
                     let pieceType = piece.toPieceType()
                     let handOfs = pieceType - Piece.PIECE_HAND_ZERO
+                    // TODO
                     if color == PColor.BLACK {
-                        return CGPoint(x: 696+32, y: 176+64*7-32-handOfs*64)
+                        return CGPoint(x: gridSize * CGFloat(10.875 + 0.5), y: gridSize * CGFloat(2.75 + 7 - 0.5 - CGFloat(handOfs)))
                     } else {
-                        return CGPoint(x: 8+32, y: 16+32+handOfs*64)
+                        return CGPoint(x: gridSize * CGFloat(0.125+0.5), y: gridSize * CGFloat(0.25+0.5+CGFloat(handOfs)))
                     }
                 }
             }
@@ -59,27 +65,32 @@ struct BoardView: View {
                 return "Piece\(k)"
             }
         }
+        
+        private func squareToPosition(square: Square) -> CGPoint {
+            // TODO ロジックの重複を回避
+            return CGPoint(x: gridSize * 10 - CGFloat(square.file) * gridSize, y: gridSize + CGFloat(square.rank) * gridSize)
+        }
     }
     
     var matchStatus: MatchStatus
     var body: some View {
         // ZStackは後ろに書いたものが手前に表示される
         ZStack(alignment: .topLeading) {
-            Image("Board")
+            Image("Board").resizable().frame(width: gridSize * 12, height: gridSize * 10)
             if let lastMove = getLastOrdinaryMove() {
                 // 最後の移動先に色をつける
-                Image("BGMove").position(BoardView.squareToPosition(square: lastMove.moveTo))
+                Image("BGMove").resizable().frame(width: gridSize, height: gridSize).position(squareToPosition(square: lastMove.moveTo))
             }
             ForEach(getBoardViewPieceList(), content: {
                 p in
                 ZStack(alignment: .bottomTrailing) {
-                    Image(p.imageName).rotationEffect(.degrees(p.angle))
+                    Image(p.imageName).resizable().frame(width: gridSize, height: gridSize).rotationEffect(.degrees(p.angle))
                     if p.handCount > 1 {
-                        Text("\(p.handCount)").font(.title).background(Color.white).padding(2.0)
+                        Text("\(p.handCount)").font(.system(size: gridSize * 0.5)).background(Color.white).padding(2.0)
                     }
                 }.position(p.position)
             })
-        }
+        }.frame(width: gridSize * 12, height: gridSize * 10)
     }
     
     private func getLastOrdinaryMove() -> DetailedMove? {
@@ -98,7 +109,7 @@ struct BoardView: View {
         for sq in 0..<Square.SQ_NB {
             let piece = position.board[sq]
             if piece.isExist() {
-                pis.append(BoardViewPieceItem(id: sq, square: Square(sq), handCount: 0, piece: piece))
+                pis.append(BoardViewPieceItem(id: sq, gridSize: gridSize, square: Square(sq), handCount: 0, piece: piece))
             }
         }
         
@@ -108,15 +119,15 @@ struct BoardView: View {
             for handPiece in Piece.PIECE_HAND_ZERO..<Piece.PIECE_HAND_NB {
                 let count = handOfColor[handPiece - Piece.PIECE_HAND_ZERO]
                 if count > 0 {
-                    pis.append(BoardViewPieceItem(id: 100 + color * 10 + handPiece, square: nil, handCount: count, piece: Piece(handPiece + color * Piece.PIECE_WHITE)))
+                    pis.append(BoardViewPieceItem(id: 100 + color * 10 + handPiece, gridSize: gridSize, square: nil, handCount: count, piece: Piece(handPiece + color * Piece.PIECE_WHITE)))
                 }
             }
         }
         return pis
     }
     
-    static private func squareToPosition(square: Square) -> CGPoint {
-        return CGPoint(x: 640 - square.file * 64, y: 64 + square.rank * 64)
+    private func squareToPosition(square: Square) -> CGPoint {
+        return CGPoint(x: gridSize * 10 - CGFloat(square.file) * gridSize, y: gridSize + CGFloat(square.rank) * gridSize)
     }
 }
 

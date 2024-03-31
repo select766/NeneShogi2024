@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ScoreBarView: View {
+    let gridSize = CGFloat(32)
     var matchStatus: MatchStatus
     
     private func gameStateToString(gameState: MatchStatus.GameState) -> String {
@@ -40,19 +41,19 @@ struct ScoreBarView: View {
     var body: some View {
         let blackWinratePercent = getBlackWinratePercent()
         HStack {
-            Text("▲\(matchStatus.players[0] ?? "?")").frame(maxWidth: 160)
+            Text("▲\(matchStatus.players[0] ?? "?")").font(.system(size: gridSize * 0.4)).frame(maxWidth: gridSize * 2.5)
             if case .playing = matchStatus.gameState {
-                Text("\(blackWinratePercent) %").font(.title).frame(width: 80)
+                Text("\(blackWinratePercent) %").font(.system(size: gridSize * 0.5)).frame(width: gridSize * 1.25)
                 ZStack(alignment: .topLeading) {
-                    Rectangle().fill(Color.white).frame(width: 600, height: 24)
-                    Rectangle().fill(Color.black).frame(width: CGFloat(600 * blackWinratePercent / 100), height: 24)
+                    Rectangle().fill(Color.white).frame(width: gridSize * 9.375, height: gridSize * 0.375)
+                    Rectangle().fill(Color.black).frame(width: CGFloat(gridSize * CGFloat(CGFloat(9.375) * CGFloat(blackWinratePercent) / CGFloat(100))), height: gridSize * 0.375)
                 }
-                Text("\(100 - blackWinratePercent) %").font(.title).frame(width: 80)
+                Text("\(100 - blackWinratePercent) %").font(.system(size: gridSize * 0.5)).frame(width: gridSize * 1.25)
             } else {
                 Text(gameStateToString(gameState: matchStatus.gameState))
             }
-            Text("△\(matchStatus.players[1] ?? "?")").frame(maxWidth: 160)
-        }.frame(width: 1080, height: 32).background(Color.yellow)
+            Text("△\(matchStatus.players[1] ?? "?")").font(.system(size: gridSize * 0.4)).frame(maxWidth: gridSize * 2.5)
+        }.frame(width: gridSize * 16.875, height: gridSize * 0.5).background(Color.yellow)
     }
 }
 

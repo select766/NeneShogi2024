@@ -8,18 +8,18 @@
 import SwiftUI
 
 struct MatchStaticView: View {
+    let gridSize = CGFloat(32)
     var latestMessage: String = "Press Start"
-    var searchProgress: SearchProgress? = nil
+    var searchProgress: SearchProgress?
     var matchStatus: MatchStatus
     var communicationHistory: [CommunicationItem]
     var commuicationHistoryDisplay: [CommunicationHistoryDisplayItem]
     @State var debugView = false
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             ScoreBarView(matchStatus: matchStatus)
             ScoreChartView(matchStatus: matchStatus)
-            Spacer()
             HStack {
                 BoardView(matchStatus: matchStatus)
                 VStack(alignment: .center) {
@@ -36,7 +36,7 @@ struct MatchStaticView: View {
                                 })
                             }
                             
-                        }.frame(maxWidth: .infinity, maxHeight: 600.0)
+                        }.frame(maxWidth: .infinity, maxHeight: gridSize * 9.375)
                     } else {
                         if let searchProgress = searchProgress {
                             PVView(searchProgress: searchProgress)
@@ -44,6 +44,7 @@ struct MatchStaticView: View {
                         
                         MoveHistoryView(matchStatus: matchStatus)
                     }
+                    Text(latestMessage)
                     Spacer()
                     Button(action: {
                         debugView = !debugView
