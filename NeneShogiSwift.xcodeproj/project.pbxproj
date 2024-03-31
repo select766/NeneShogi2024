@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7410BC882BB9072900E05DF0 /* MatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC872BB9072900E05DF0 /* MatchView.swift */; };
+		7410BC8A2BB90D8C00E05DF0 /* MatchStaticView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */; };
 		AA054851281D41080032AF12 /* BookMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA054850281D41080032AF12 /* BookMaker.swift */; };
 		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
@@ -69,6 +71,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7410BC872BB9072900E05DF0 /* MatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchView.swift; sourceTree = "<group>"; };
+		7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchStaticView.swift; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA054850281D41080032AF12 /* BookMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMaker.swift; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
@@ -171,6 +175,8 @@
 				AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */,
 				AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */,
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
+				7410BC872BB9072900E05DF0 /* MatchView.swift */,
+				7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */,
 				AA90C4DC27B8BEDD00ED174E /* Assets.xcassets */,
 				AA90C4DE27B8BEDD00ED174E /* Preview Content */,
 				AA22E00927BA72BE0075371D /* MatchManager.swift */,
@@ -372,6 +378,7 @@
 				AA9C013527C1C88600BB71E0 /* Square.swift in Sources */,
 				AA995E6727CB1DE800D1B5C2 /* DNNInputTestCase.swift in Sources */,
 				AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */,
+				7410BC8A2BB90D8C00E05DF0 /* MatchStaticView.swift in Sources */,
 				AA9C013327C1C5DE00BB71E0 /* Move.swift in Sources */,
 				AA9C013727C1CCB800BB71E0 /* Color.swift in Sources */,
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,
@@ -390,6 +397,7 @@
 				AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */,
 				AA054851281D41080032AF12 /* BookMaker.swift in Sources */,
 				AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */,
+				7410BC882BB9072900E05DF0 /* MatchView.swift in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
 				AACEC87928181D0700517C11 /* Book.swift in Sources */,
 				AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */,
