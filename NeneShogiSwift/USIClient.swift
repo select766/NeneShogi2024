@@ -1,8 +1,76 @@
 import Foundation
 import Network
+import YaneuraOuiOSSPM
 
 // AI種類選択
 var playerClass = "MCTS"
+
+
+// やねうら王とのプロセス内通信関係のバッファ（グローバル関数にするしかない）
+var yaneRecvBuffer: Data = Data()
+let recvSemaphore = DispatchSemaphore(value: 1)
+var yaneSendBuffer: Data = Data()
+let sendSemaphore = DispatchSemaphore(value: 1)
+var _cb: (String) -> Void = {_ in}
+func registerCallback(cb: @escaping (String) -> Void) {
+    _cb = cb
+}
+
+func usiWrite(char: Int32) -> Void {
+    // 思考スレッドから呼ばれる
+    // 1文字ずつくる。
+    // 改行が含まれている。複数行の場合もある。
+    // USIクライアント->USIサーバへの送信
+    if char < 0 {
+        print("usiWrite(EOF)")
+        return
+    }
+    
+    sendSemaphore.wait()
+    
+    if char == 0x0a {
+        // end of line
+        let completeBuffer = yaneSendBuffer
+        yaneSendBuffer = Data()
+        // 改行文字は含まない
+        _cb(String(data: completeBuffer, encoding: .utf8)!)
+    }
+    
+    yaneSendBuffer.append(contentsOf: [UInt8(clamping: char)])
+    
+    sendSemaphore.signal()
+}
+
+func usiRead() -> Int32 {
+    // 思考スレッドから呼ばれる
+    // USIサーバ->USIクライアントへの受信
+    var item: Int32 = 0
+    while true {
+        recvSemaphore.wait()
+        if yaneRecvBuffer.count > 0 {
+            item = Int32(yaneRecvBuffer[0])
+            // recvBuffer = recvBuffer.dropFirst()
+            // を使うと、次回のrecvBuffer[0]のアクセス時になぜかクラッシュする
+            yaneRecvBuffer = Data(yaneRecvBuffer[1...])
+            recvSemaphore.signal()
+            break
+        } else {
+            recvSemaphore.signal()
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+    }
+    
+    return item
+}
+
+
+func stringToUnsafeMutableBufferPointer(_ s: String) -> UnsafeMutableBufferPointer<Int8> {
+    let count = s.utf8CString.count
+    let result: UnsafeMutableBufferPointer<Int8> = UnsafeMutableBufferPointer<Int8>.allocate(capacity: count)
+    _ = result.initialize(from: s.utf8CString)
+    return result
+}
+
 
 class USIClient {
     let matchManager: MatchManager
@@ -11,7 +79,6 @@ class USIClient {
     var connection: NWConnection?
     let queue: DispatchQueue
     var recvBuffer: Data = Data()
-    var player: PlayerProtocol?
     var goRunning = false
     var lastPositionArg: String? = nil
     var position: Position // 手番把握のためにAIとは別に必要
@@ -33,6 +100,7 @@ class USIClient {
             switch newState {
             case .ready:
                 self.matchManager.displayMessage("connected to USI server")
+                self.startYane()
                 self.startRecv()
             case .waiting(let nwError):
                 // ネットワーク構成が変化するまで待つ=事実上の接続失敗
@@ -43,6 +111,20 @@ class USIClient {
             }
         }
         connection?.start(queue: queue)
+    }
+    
+    private func startYane() {
+        // やねうら王とのプロセス内通信準備
+        registerCallback(cb: {
+            usiSendLine in
+            self.queue.async {
+                self.sendUSI(message: usiSendLine)
+            }
+        })
+        let compute_units: Int32 = 2 // 0:cpu, 1: cpuandgpu, 2: all (neural engine)
+        let model_url_p = stringToUnsafeMutableBufferPointer(DlShogiResnet.urlOfModelInThisBundle.absoluteString)
+        let mainResult = YaneuraOuiOSSPM.yaneuraou_ios_main(usiRead, usiWrite, model_url_p.baseAddress!, compute_units)
+        print("yaneuraou_ios_main", mainResult)
     }
     
     func startRecv() {
@@ -81,8 +163,18 @@ class USIClient {
             }
         })
     }
-    
+
     func handleUSICommand(command: String) {
+        // やねうら王に送る
+        recvSemaphore.wait()
+        let d = (command + "\n").data(using: .utf8)!
+        yaneRecvBuffer.append(d)
+        recvSemaphore.signal()
+        handleUSICommandForDisplay(command: command)
+    }
+    
+    func handleUSICommandForDisplay(command: String) {
+        // 画面表示用にUSI受信コマンドをパースする
         self.matchManager.displayMessage("USI recv: '\(command)'")
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         if splits.count < 1 {
@@ -92,27 +184,12 @@ class USIClient {
         let commandArg = splits.count == 2 ? String(splits[1]) : nil
         switch commandType {
         case "usi":
-            switch playerClass {
-            case "Random":
-                self.player = RandomPlayer()
-            case "Policy":
-                self.player = PolicyPlayer()
-            case "MCTS":
-                self.player = MCTSPlayer()
-            default:
-                fatalError("Unknown player selection")
-            }
-            sendUSI(messages: ["id name NeneShogiSwift", "id author select766", "usiok"])
+            break
         case "isready":
-            self.player?.isReady(callback: {
-                self.queue.async {
-                    self.sendUSI(message: "readyok")
-                }
-            })
+            break
         case "setoption":
             break
         case "usinewgame":
-            self.player?.usiNewGame()
             moveHistory = []
             break
         case "position":
@@ -140,26 +217,17 @@ class USIClient {
             }
             break
         case "go":
-            let thinkingTime: ThinkingTime
-            if let commandArg = commandArg {
-                thinkingTime = parseThinkingTime(commandArg: commandArg)
-            } else {
-                // 便宜上秒読み10秒にしておく
-                thinkingTime = ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 10.0, fisher: 0.0)
-            }
-            runGo(thinkingTime: thinkingTime, secondCall: false)
+//            let thinkingTime: ThinkingTime
+//            if let commandArg = commandArg {
+//                thinkingTime = parseThinkingTime(commandArg: commandArg)
+//            } else {
+//                // 便宜上秒読み10秒にしておく
+//                thinkingTime = ThinkingTime(ponder: false, remaining: 0.0, byoyomi: 10.0, fisher: 0.0)
+//            }
+            break
         case "stop":
-            // go ponderは行わないので通常起こらないはず
-            guard let player = self.player else {
-                fatalError()
-            }
-            player.stop()
+            break
         case "gameover":
-            // ponder中に終わる場合があるので一応stopしておく
-            guard let player = self.player else {
-                fatalError()
-            }
-            player.stop()
             break
         case "quit":
             // 接続を切断することで接続先のncコマンドが終了する
@@ -171,77 +239,6 @@ class USIClient {
         }
     }
     
-    func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
-        guard let player = self.player else {
-            fatalError()
-        }
-        // ponderを止める
-        player.stop()
-        if goRunning {
-            if !secondCall {
-                print("waiting last go ends")
-            }
-            queue.asyncAfter(deadline: .now() + 0.01, execute: {
-                self.runGo(thinkingTime: thinkingTime, secondCall: true)
-            })
-            return
-        }
-        goRunning = true
-        // ponderが終わってから、positionを設定する
-        player.position(positionArg: lastPositionArg!)
-        player.go(info: {(sp: SearchProgress) in
-            self.queue.async {
-                // "info depth \(pv.moves.count) nodes \(pv.nodeCount) score cp \(cpInt) pv"
-                // TODO: spを解釈する
-//                var usiInfo = "info depth \(sp.pv.count)  score cp \(sp.scoreCp) pv"
-//                for dm in sp.pv {
-//                    usiInfo += " \(dm.toUSIString())"
-//                }
-//                self.sendUSI(message: usiInfo)
-                self.matchManager.updateSearchProgress(searchProgress: sp)
-            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
-            // TODO: 評価値をmoveHistoryに取り回す
-            self.queue.async {
-                self.sendUSI(message: "bestmove \(bestMove.toUSIString())")
-                self.goRunning = false
-                self.runPonderIfPossible(bestMove: bestMove)
-            }
-        })
-    }
-    
-    func runPonderIfPossible(bestMove: Move) {
-        if !usiConfig.ponder {
-            return
-        }
-        if bestMove.isTerminal {
-            return
-        }
-        print("run ponder")
-        guard let player = self.player else {
-            fatalError()
-        }
-        // positionコマンドで来た局面+bestMoveで進めた局面で思考
-        goRunning = true
-        let nextPosition: String
-        if lastPositionArg == "startpos" {
-            nextPosition = "\(lastPositionArg!) moves \(bestMove.toUSIString())"
-        } else {
-            nextPosition = "\(lastPositionArg!) \(bestMove.toUSIString())"
-        }
-        player.position(positionArg: nextPosition)
-        let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
-        player.go(info: {(sp: SearchProgress) in
-            //            self.queue.async {
-            //                self.sendUSI(message: message)
-            //            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
-            self.queue.async {
-                print("ponder result \(bestMove.toUSIString())")
-                self.goRunning = false
-            }
-        })
-    }
     
     func parseThinkingTime(commandArg: String) -> ThinkingTime {
         //　positionで指定された手番側の持ち時間を取得する
