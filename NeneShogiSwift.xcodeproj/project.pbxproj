@@ -11,6 +11,7 @@
 		7410BC8A2BB90D8C00E05DF0 /* MatchStaticView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */; };
 		7410BC8D2BB965F100E05DF0 /* YaneuraOuiOSSPM in Frameworks */ = {isa = PBXBuildFile; productRef = 7410BC8C2BB965F100E05DF0 /* YaneuraOuiOSSPM */; };
 		7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */; };
+		7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */; };
 		AA054851281D41080032AF12 /* BookMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA054850281D41080032AF12 /* BookMaker.swift */; };
 		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
@@ -76,6 +77,7 @@
 		7410BC872BB9072900E05DF0 /* MatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchView.swift; sourceTree = "<group>"; };
 		7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchStaticView.swift; sourceTree = "<group>"; };
 		7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet.mlmodel; sourceTree = "<group>"; };
+		7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineCommunicator.swift; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA054850281D41080032AF12 /* BookMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMaker.swift; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
@@ -218,6 +220,7 @@
 				AACEC87E281CDE8B00517C11 /* MoveHistoryView.swift */,
 				AACEC880281CE5AC00517C11 /* PVView.swift */,
 				AACEC882281D0D0300517C11 /* ScoreChartView.swift */,
+				7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */,
 			);
 			path = NeneShogiSwift;
 			sourceTree = "<group>";
@@ -419,6 +422,7 @@
 				AACE1F8327EB244A0099667A /* PlayerProtocol.swift in Sources */,
 				AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */,
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,
+				7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
 				AACE1F7F27EB1C940099667A /* UCTNode.swift in Sources */,
 				AACEC873281394AF00517C11 /* CSAConfig.swift in Sources */,
