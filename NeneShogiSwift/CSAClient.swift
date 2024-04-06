@@ -587,7 +587,19 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             break
         }
         
-        // TODO 状態変化に応じてmatchManagerにsubscribeする
+        // TODO 状態の種類見直し
+        let matchStatusGameState: MatchStatus.GameState
+        switch state {
+        case .connecting, .noConnection:
+            matchStatusGameState = .connecting
+        case .waitingStart, .waitingReadyok, .waitingGameSummary:
+            matchStatusGameState = .initializing
+        case .myTurn, .opponentTurn:
+            matchStatusGameState = .playing
+        case .endingGame:
+            matchStatusGameState = .end(gameResult: "Unknown")
+        }
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: matchStatusGameState, players: players, position: position, moveHistory: moveHistory))
     }
     
     private func initPosition() {
