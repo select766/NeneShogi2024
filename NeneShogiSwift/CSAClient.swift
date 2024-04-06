@@ -2,55 +2,318 @@ import Foundation
 import Network
 import os
 
-let logger = Logger(subsystem: "jp.outlook.select766.NeneShogiSwift", category: "csa")
-
-enum CSAClientState {
-    case waiting
-    case game
-    case end(gameResult: String)
-}
+private let logger = Logger(subsystem: "jp.outlook.select766.NeneShogiSwift", category: "csa")
 
 class CSAClient {
-    let csaConfig: CSAConfig
-    let matchManager: MatchManager
-    var serverEndpoint: NWEndpoint
-    var connection: NWConnection?
-    let queue: DispatchQueue // データ構造の書き換えはこのqueueのスレッドで行う
-    var recvBuffer: Data = Data()
-    var myColor: PColor?
-    var moves: [Move]
-    var position: Position
-    var state = CSAClientState.waiting
-    var myRemainingTime: Double = 0.0
-    var moveHistory: [MoveHistoryItem] = []
-    var lastSendTime: Date = Date()
-    var goRunning = false
-    var lastGoScoreCp: Int? = nil
-    var players: [String?] = [nil, nil]
-    var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
-    var goRunningPonder = false
-    var goRunningMoves: [Move]
+    let queue: DispatchQueue
+    let usiActor: USIActor
+    let csaActor: CSAActor
     
     init(matchManager: MatchManager, csaConfig: CSAConfig) {
-        self.matchManager = matchManager // TODO: 循環参照回避
-        self.csaConfig = csaConfig
         queue = DispatchQueue(label: "csaClient")
-        self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.csaConfig.csaServerIpAddress), port: NWEndpoint.Port(rawValue: self.csaConfig.csaServerPort)!)
-        self.moves = []
-        self.goRunningMoves = []
-        self.position = Position()
+        usiActor = USIActor(queue: queue)
+        csaActor = CSAActor(queue: queue, csaConfig: csaConfig, matchManager: matchManager)
     }
     
     func start() {
-        // AIは複数回サーバに接続する場合でも最初の1回だけ
-        // TODO start yane usi -> usiok
-        startYaneuraou(recvCallback: {command in
-            self.queue.async {
-                self.yaneRecv(command: command)
-            }})
-        sendToYaneuraou(messageWithoutNewLine: "usi")
-        // usiokが来るのを待つ
+        usiActor.subscribe(callback: usiActorCallback)
+        csaActor.subscribe(callback: csaActorCallback)
+        usiActor.dispatch(.launch)
     }
+    
+    private func usiActorCallback(message: USIActor.USIActorEmitMessage) {
+        switch message {
+        case .launchCompleted:
+            csaActor.dispatch(.connect)
+        case let .csa(message: message):
+            csaActor.dispatch(message)
+        }
+    }
+    
+    private func csaActorCallback(message: CSAActor.CSAActorEmitMessage) {
+        switch message {
+        case let .usi(message):
+            usiActor.dispatch(message)
+        }
+    }
+}
+
+class Actor<T,U: Equatable,V> {
+    let queue: DispatchQueue
+    var _state: U
+    var subscribers: [(V) -> Void]
+    
+    init(queue: DispatchQueue, initialState: U) {
+        self.queue = queue
+        self._state = initialState
+        self.subscribers = []
+    }
+    
+    func dispatch(_ message: T) -> Void {
+        queue.async {
+            print("dispatch \(message)")
+            self._dispatch(message: message)
+        }
+    }
+    
+    func _dispatch(message: T) {
+        fatalError()
+    }
+    
+    func emit(_ message: V) {
+        for subscriber in subscribers {
+            subscriber(message)
+        }
+    }
+    
+    func subscribe(callback: @escaping (V) -> Void) {
+        subscribers.append(callback)
+    }
+    
+    var state: U {
+        get {
+            return self._state
+        }
+        set {
+            let lastState = self._state
+            self._state = newValue
+            if (newValue != lastState) {
+                // これはキューではなく即時実行(すでに溜まっているメッセージの処理で、さらにstateが変化する可能性があるので)
+                stateChanged(newState: newValue, lastState: lastState)
+            }
+        }
+    }
+    
+    func stateChanged(newState: U, lastState: U) -> Void {
+    }
+    
+    func unexpected(_ message: T) {
+        unexpected(message: message, state: state)
+    }
+    
+    func unexpected(message: T, state: U) {
+        let s: String = "Unexpected message \(message) for state \(state)"
+        logger.error("\(s)")
+    }
+    
+}
+
+class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActor.USIActorEmitMessage> {
+    enum USIActorMessage {
+        case launch
+        case isready
+        case go(position: Position, positionCommand: String, goCommand: String)
+        case ponder(position: Position, positionCommand: String, goCommand: String)
+        // go, goPonderを止める作用あり
+        case gameover(gameResult: String)
+        case usiRecv(commandType: String, commandArg: String?)
+        case endGameWaitEnd
+    }
+    
+    enum USIActorState {
+        case beforeLaunch
+        case launching
+        case waitingGame
+        case readying
+        case gameIdle
+        case gameGoing
+        case gamePondering
+        case endGameWaiting
+    }
+    
+    enum USIActorEmitMessage {
+        case csa(CSAActor.CSAActorMessage)
+        case launchCompleted
+    }
+    
+    var positionForGo: Position? = nil
+    var pendingMessageOnPonder: USIActorMessage? = nil
+    
+    init(queue: DispatchQueue) {
+        super.init(queue: queue, initialState: .beforeLaunch)
+    }
+    
+    override func stateChanged(newState: USIActorState, lastState: USIActorState) {
+        print("usi state: \(newState) <- \(lastState)")
+        switch newState {
+        case .endGameWaiting:
+            // gameoverを送ってから、一定時間は次のUSI操作をしないよう待機する時間
+            queue.asyncAfter(deadline: .now() + 5.0, execute: {
+                self.dispatch(.endGameWaitEnd)
+            })
+        default:
+            break
+        }
+    }
+    
+    override func _dispatch(message: USIActorMessage) {
+        switch state {
+        case .beforeLaunch:
+            switch message {
+            case .launch:
+                startYaneuraou(recvCallback: {command in
+                    self.queue.async {
+                        self.yaneRecv(command: command)
+                    }})
+                yaneSend("usi")
+                state = .launching
+            default:
+                unexpected(message)
+            }
+        case .launching:
+            switch message {
+            case let .usiRecv(commandType: commandType, commandArg: _):
+                if ["option", "id"].contains(commandType) {
+                    // do nothing
+                } else if commandType == "usiok" {
+                    // launch ok
+                    // 対局ごとのsetoptionはうまくいくか不明なので、usiokに対応してここで行う(isreadyの直前ではなく)。
+                    var options = ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8", "setoption USI_Ponder value true", "setoption Stochastic_Ponder value true"]
+                    for option in options {
+                        yaneSend(option)
+                    }
+                    emit(.launchCompleted)
+                    state = .waitingGame
+                } else {
+                    unexpected(message)
+                }
+            default:
+                unexpected(message)
+            }
+        case .waitingGame:
+            switch message {
+            case .isready:
+                state = .readying
+                yaneSend("isready")
+            default:
+                unexpected(message)
+            }
+        case .readying:
+            switch message {
+            case let .usiRecv(commandType: commandType, commandArg: _):
+                if commandType == "info" {
+                    // do nothing
+                } else if commandType == "readyok" {
+                    yaneSend("usinewgame")
+                    emit(.csa(.readyok))
+                    state = .gameIdle
+                } else {
+                    unexpected(message)
+                }
+            default:
+                unexpected(message)
+            }
+        case .gameIdle:
+            switch message {
+            case let .go(position: position, positionCommand: positionCommand, goCommand: goCommand):
+                positionForGo = position
+                yaneSend(positionCommand)
+                yaneSend(goCommand)
+                state = .gameGoing
+            case let .ponder(position: _, positionCommand: positionCommand, goCommand: goCommand):
+                yaneSend(positionCommand)
+                yaneSend(goCommand)
+                state = .gamePondering
+            case let .gameover(gameResult: gameResult):
+                yaneSend("gameover \(gameResult)")
+                state = .endGameWaiting
+            case let .usiRecv(commandType: commandType, commandArg: _):
+                if commandType == "info" {
+                    // do nothing
+                } else {
+                    unexpected(message)
+                }
+            default:
+                unexpected(message)
+            }
+        case .gameGoing:
+            // goの中断は現状対応していない
+            switch message {
+            case .go:
+                unexpected(message)
+            case .ponder:
+                unexpected(message)
+            case let .gameover(gameResult: gameResult):
+                // CSAで、相手の指し手を受信し、直後に千日手等での終了が宣言されると発生する
+                // gameoverを送ったあとで、bestmoveが送られるレースコンディションがありうる
+                yaneSend("gameover \(gameResult)")
+                state = .endGameWaiting
+            case let .usiRecv(commandType: commandType, commandArg: commandArg):
+                if commandType == "info" {
+                    // do nothing
+                } else if commandType == "bestmove" {
+                    if let positionForGo = positionForGo, let commandArg = commandArg {
+                        let parts = commandArg.split(separator: " ")
+                        let moveUSI = String(parts[0])
+                        let ponderUSI = parts.count >= 3 ? String(parts[2]) : nil
+                        emit(.csa(.bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: ponderUSI)))
+                        self.positionForGo = nil
+                        state = .gameIdle
+                    } else {
+                        print("wrong condition for bestmove")
+                        unexpected(message)
+                    }
+                } else {
+                    unexpected(message)
+                }
+            default:
+                unexpected(message)
+            }
+        case .gamePondering:
+            switch message {
+            case .go:
+                // TODO ponderhit (今は常にstopで止めて、ponderは単に置換表を埋めている形）
+                // ponderをstopで終了して、bestmoveが来てからgoを送りたい
+                if pendingMessageOnPonder != nil {
+                    print("multiple go/ponder requests while running previous ponder")
+                    // error
+                }
+                pendingMessageOnPonder = message
+                yaneSend("stop")
+            case .ponder:
+                // ponderをstopで終了して、bestmoveが来てからgo ponderを送りたい
+                if pendingMessageOnPonder != nil {
+                    print("multiple go/ponder requests while running previous ponder")
+                    // error
+                }
+                pendingMessageOnPonder = message
+                yaneSend("stop")
+            case let .gameover(gameResult: gameResult):
+                // CSAで、自分の指し手がエコーバックされ、直後に千日手等での終了が宣言されると発生する
+                // gameoverを送ったあとで、bestmoveが送られるレースコンディションがありうる
+                yaneSend("gameover \(gameResult)")
+                state = .endGameWaiting
+            case let .usiRecv(commandType: commandType, commandArg: _):
+                if commandType == "info" {
+                    // do nothing
+                } else if commandType == "bestmove" {
+                    // この指し手自体はいらない。ponderが終了しidleになったことがわかる。
+                    if let pendingMessageOnPonder = pendingMessageOnPonder {
+                        state = .gameIdle
+                        // すでに受信したgoメッセージをエンジンに送る
+                        self.pendingMessageOnPonder = nil
+                        dispatch(pendingMessageOnPonder)
+                    }
+                } else {
+                    unexpected(message)
+                }
+            default:
+                unexpected(message)
+            }
+        case .endGameWaiting:
+            // gameoverを送ったタイミングにより、bestmoveが来たりこなかったりするので少し待つ
+            switch message {
+            case let .usiRecv(commandType: commandType, commandArg: _):
+                print("discarding usi message after gameover: \(commandType)")
+            case .endGameWaitEnd:
+                state = .waitingGame
+            default:
+                // すぐに次の対局が開始する場合に本当は備えたい
+                unexpected(message)
+            }
+        }
+    }
+    
     
     private func yaneRecv(command: String) -> Void {
         print("yaneRecv \(command)")
@@ -59,152 +322,265 @@ class CSAClient {
         if splits.count < 1 {
             return
         }
-        let commandType = splits[0]
+        let commandType = String(splits[0])
         let commandArg = splits.count == 2 ? String(splits[1]) : nil
-        switch commandType {
-        case "option":
+        dispatch(.usiRecv(commandType: commandType, commandArg: commandArg))
+    }
+    
+    private func yaneSend(_ commandWithoutNewLine: String) -> Void {
+        print("yaneSend \(commandWithoutNewLine)")
+        sendToYaneuraou(messageWithoutNewLine: commandWithoutNewLine)
+    }
+}
+
+class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActor.CSAActorEmitMessage> {
+    enum CSAActorMessage {
+        case connect
+        case csaConnected
+        case csaDisconnected
+        // コマンド1行（CRLFなし）
+        case csaRecv(command: String)
+        case gameSummaryReceived
+        case readyok
+        case bestmove(position: Position, moveUSI: String, ponderUSI: String?)
+        case endGameReceived(reason: String)
+    }
+    
+    enum CSAActorState {
+        case noConnection
+        case connecting
+        // LOGIN送信で開始、対局情報受信完了まで
+        case waitingGameSummary
+        case waitingReadyok
+        case waitingStart
+        case myTurn
+        case opponentTurn
+        case endingGame
+    }
+    
+    enum CSAActorEmitMessage {
+        case usi(USIActor.USIActorMessage)
+    }
+    
+    let csaConfig: CSAConfig
+    let matchManager: MatchManager
+    
+    // 状態
+    var myColor: PColor?
+    var players: [String?] = [nil, nil]
+    // moves, positionはサーバから受信した指し手で変化させる（自分の指し手で直接変化させない）
+    var moves: [Move]
+    var position: Position
+    var myRemainingTime: Double = 0.0
+    var moveHistory: [MoveHistoryItem] = []
+    var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
+    
+    // 通信管理
+    var connection: NWConnection?
+    var recvBuffer: Data = Data()
+    var lastSendTime: Date = Date()
+    
+    
+    init(queue: DispatchQueue, csaConfig: CSAConfig, matchManager: MatchManager) {
+        self.csaConfig = csaConfig
+        self.matchManager = matchManager
+        moves = []
+        position = Position()
+        super.init(queue: queue, initialState: .noConnection)
+        setKeepalive()
+    }
+    
+    override func stateChanged(newState: CSAActorState, lastState: CSAActorState) -> Void {
+        print("state: \(newState) <- \(lastState)")
+        switch newState {
+        case .noConnection:
             break
-        case "usiok":
-            startConnection()
-            setKeepalive()
-            // TODO ponder
-            for option in ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8"] {
-                sendToYaneuraou(messageWithoutNewLine: option)
+        case .connecting:
+            break
+        case .waitingGameSummary:
+            break
+        case .waitingReadyok:
+            break
+        case .waitingStart:
+            break
+        case .myTurn:
+            // 自分の手番になった
+            myRemainingTime += csaConfig.timeIncrementSec
+            runGo(ponder: false)
+        case .opponentTurn:
+            // 相手の手番
+            if csaConfig.ponder {
+                runGo(ponder: true)
             }
-        case "info":
             break
-        case "readyok":
-            self.state = .game
-            self.myRemainingTime = self.csaConfig.timeTotalSec
-            self.moves = []
-            self.moveHistory = []
-            self.position.setHirate()
-            self.sendCSA(message: "AGREE")
-            
-            self.csaKifu = CSAKifu(players: self.players)
-            self.sendMatchStatus(gameState: .playing)
-            break
-        case "bestmove":
-            // TODO
-            // これはponderでない思考の時
-            self.goRunning = false
-            guard let bestMoveUSI = commandArg else {
-                fatalError()
-            }
-            if goRunningPonder {
-                // ponderの時
-                // Stochastic ponderで置換表を埋めるだけ。ponderhit未実装。
-                print("ponder bestmove \(bestMoveUSI)")
-            } else {
-                // ponderでない時
-                // 千日手成立の場合、サーバから千日手が成立する手がきた後、#SENNICHITE,#DRAWが来る。手を受け取った時点で思考を開始してしまうので、思考結果を出力してしまう場合があるがレースコンディションなので仕方ない。現状、一局ごとにTCP接続を切っているので、次の対局に影響することはないので放置。
-                if case .game = self.state {
-                    guard let bestMove = Move.fromUSIString(moveUSI: bestMoveUSI) else {
-                        fatalError()
-                    }
-                    let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
-                    // self.lastGoScoreCp = scoreCp
-                    self.sendCSA(message: bestMoveCSA)
-                    self.runPonderIfPossible(bestMove: bestMove, movesForGo: goRunningMoves)
-                }
-            }
-            break
-        default:
-            break
+        case .endingGame:
+            csaKifu?.save()
+            csaKifu = nil
+            sendCSA(message: "LOGOUT")
+            emit(.usi(.gameover(gameResult: "draw")))
         }
     }
     
-    private func sendMatchStatus(gameState: MatchStatus.GameState) {
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: gameState, players: players, position: position.copy(), moveHistory: moveHistory))
+    private func runGo(ponder: Bool) {
+        // remaining timeに今回手番側回ってきたことによる加算時間は含まない
+        let thinkingTime = ThinkingTime(ponder: ponder, remaining: myRemainingTime - csaConfig.timeIncrementSec, byoyomi: 0.0, fisher: csaConfig.timeIncrementSec)
+        
+        var positionCommand = "position startpos"
+        if moves.count > 0 {
+            positionCommand += " moves " + moves.map({ move in
+                move.toUSIString()
+            }).joined(separator: " ")
+        }
+        
+        // TODO: 持ち時間の処理がこれでいいか確認する (USIでは、btimeとbincを足した時間が今回の思考時間)
+        var goCommand = ""
+        if thinkingTime.ponder {
+            goCommand = "go ponder btime 1000 wtime 1000 binc 1000"
+        } else {
+            if myColor == .BLACK {
+                goCommand = "go btime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) wtime 1000 "
+                if thinkingTime.fisher > 0.0 {
+                    goCommand += "binc \(Int((thinkingTime.fisher * 1000).rounded(.towardZero))) winc 1000"
+                } else {
+                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                }
+            } else {
+                goCommand = "go btime 1000 wtime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) "
+                if thinkingTime.fisher > 0.0 {
+                    goCommand += "binc 1000 wing \(Int((thinkingTime.fisher * 1000).rounded(.towardZero)))"
+                } else {
+                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                }
+            }
+        }
+        
+        if ponder {
+            emit(.usi(.ponder(position: position.copy(), positionCommand: positionCommand, goCommand: goCommand)))
+        } else {
+            emit(.usi(.go(position: position.copy(), positionCommand: positionCommand, goCommand: goCommand)))
+        }
     }
     
-    func startConnection() {
-        self.state = .waiting
-        
-        sendMatchStatus(gameState: .connecting)
-        self.matchManager.displayMessage("connecting to CSA server")
-        connection = NWConnection(to: serverEndpoint, using: .tcp)
-        connection?.stateUpdateHandler = {(newState) in
-            logger.log("stateUpdateHandler: \(String(describing: newState))")
-            print("stateUpdateHandler", newState)
-            switch newState {
-            case .ready:
-                self.matchManager.displayMessage("connected to CSA server")
-                
-                self.sendMatchStatus(gameState: .initializing)
+    override func _dispatch(message: CSAActorMessage) {
+        switch state {
+        case .noConnection:
+            switch message {
+            case .connect:
+                let serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.csaConfig.csaServerIpAddress), port: NWEndpoint.Port(rawValue: self.csaConfig.csaServerPort)!)
+                startConnection(serverEndpoint: serverEndpoint)
+                state = .connecting
+            default:
+                unexpected(message)
+            }
+            break
+        case .connecting:
+            switch message {
+            case .csaConnected:
                 self.sendCSA(message: "LOGIN \(self.csaConfig.loginName) \(self.csaConfig.loginPassword)")
-                self.startRecv()
-            case .waiting(let nwError):
-                // ネットワーク構成が変化するまで待つ=事実上の接続失敗
-                // TODO: 接続失敗時のアクション
-                self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
-            case .cancelled:
-                self.connection = nil
-                // プロトコルに沿わず不意に切断された場合、探索が終了しない状況になる
-                if self.csaConfig.reconnect {
-                    // LOGOUT送信の直前にサーバ側から切断され、すぐに再接続されると新しい接続に対してLOGOUTを送ってしまうかもしれないので予防的に少し待ってから再接続する
-                    self.queue.asyncAfter(deadline: .now() + 5.0, execute: self.startConnection)
+                state = .waitingGameSummary
+            case .csaDisconnected:
+                // 接続失敗
+                // TODO
+                state = .noConnection
+                break
+            default:
+                unexpected(message)
+            }
+            break
+        case .waitingGameSummary:
+            switch message {
+            case let .csaRecv(command: command):
+                _handleCSACommandWaiting(command: command)
+            case .gameSummaryReceived:
+                emit(.usi(.isready))
+                state = .waitingReadyok
+            case .csaDisconnected:
+                state = .noConnection
+            default:
+                unexpected(message)
+            }
+        case .waitingReadyok:
+            switch message {
+            case .readyok:
+                // 対局開始するようサーバに送る(STARTの返送を期待)
+                sendCSA(message: "AGREE")
+                state = .waitingStart
+            default:
+                // 待機中の切断やREJECTもありうる
+                unexpected(message)
+            }
+        case .waitingStart:
+            switch message {
+            case let .csaRecv(command: command):
+                if command.starts(with: "START") {
+                    // 対局開始
+                    initPosition()
+                    // 自分の手番なら思考開始
+                    if myColor == position.sideToMove {
+                        state = .myTurn
+                    } else {
+                        state = .opponentTurn
+                    }
+                } else {
+                    unexpected(message)
                 }
             default:
-                break
+                unexpected(message)
             }
-        }
-        connection?.start(queue: queue)
-    }
-    
-    func startRecv() {
-        connection?.receive(minimumIncompleteLength: 0, maximumLength: 65535, completion: {(data,context,flag,error) in
-            if let error = error {
-                logger.error("receive error: \(String(describing: error))")
-                self.matchManager.displayMessage("CSA receive error \(error)")
-            } else {
-                if let data = data {
-                    self.recvBuffer.append(data)
-                    while true {
-                        if let lfPos = self.recvBuffer.firstIndex(of: 0x0a) {
-                            var lineEndPos = lfPos
-                            // CRをカット
-                            if lineEndPos > 0 && self.recvBuffer[lineEndPos - 1] == 0x0d {
-                                lineEndPos -= 1
-                            }
-                            if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
-                                self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
-                                self.handleCSACommand(command: commandStr)
-                            } else {
-                                print("Cannot decode CSA data as utf-8")
-                                self.matchManager.displayMessage("Cannot decode CSA data as utf-8")
-                            }
-                            // Data()で囲わないと、次のfirstIndexで返る値が接続開始時からの全文字列に対するindexになる？バグか仕様か不明
-                            self.recvBuffer = Data(self.recvBuffer[(lfPos+1)...])
-                        } else {
-                            break
-                        }
-                    }
-                    self.startRecv()
-                } else {
-                    // コネクション切断で発生
-                    logger.error("receive zero")
-                    self.matchManager.displayMessage("CSA disconnected")
-                    self.connection?.cancel()
+        case .myTurn:
+            switch message {
+            case let .csaRecv(command: command):
+                _handleCSACommandGame(command: command)
+            case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _):
+                guard let bestMove = Move.fromUSIString(moveUSI: moveUSI) else {
+                    fatalError()
                 }
+                let bestMoveCSA = positionForGo.makeCSAMove(move: bestMove)
+                self.sendCSA(message: bestMoveCSA)
+                // 手番の転換は、サーバから消費時間が返ってきた時に行う（ponder開始がその分遅れるデメリットはある）
+            case let .endGameReceived(reason: _):
+                state = .endingGame
+            default:
+                unexpected(message)
             }
-        })
-    }
-    
-    func handleCSACommand(command: String) {
-        logger.log("receive command: \(command)")
-        self.matchManager.displayMessage("CSA recv: '\(command)'")
-        switch state {
-        case .waiting:
-            _handleCSACommandWaiting(command: command)
-        case .game:
-            _handleCSACommandGame(command: command)
-        case .end:
+        case .opponentTurn:
+            switch message {
+            case let .csaRecv(command: command):
+                _handleCSACommandGame(command: command)
+            case let .endGameReceived(reason: _):
+                state = .endingGame
+            default:
+                unexpected(message)
+            }
+        case .endingGame:
+            // LOGOUT送信したので、サーバから切断されるのを待つ
+            switch message {
+            case let .csaRecv(command: command):
+                if command != "LOGOUT:completed" {
+                    unexpected(message)
+                }
+            case .csaDisconnected:
+                state = .noConnection
+            default:
+                unexpected(message)
+            }
             break
         }
+        
+        // TODO 状態変化に応じてmatchManagerにsubscribeする
     }
     
-    func _handleCSACommandWaiting(command: String) {
+    private func initPosition() {
+        // 対局開始時に呼び出し、局面情報、持ち時間を初期化する
+        // TODO 持ち時間はサーバから受信したものを使う
+        myRemainingTime = csaConfig.timeTotalSec
+        moves = []
+        moveHistory = []
+        position.setHirate()
+        csaKifu = CSAKifu(players: players)
+    }
+    
+    private func _handleCSACommandWaiting(command: String) {
         if command.starts(with: "Your_Turn") {
             if command == "Your_Turn:+" {
                 myColor = PColor.BLACK
@@ -218,22 +594,19 @@ class CSAClient {
         } else if command.starts(with: "Name-:") {
             players[1] = String(command.dropFirst(6))
         } else if command.starts(with: "END Game_Summary") {
-            // TODO 指定局面戦への対応では何かしら必要かも
-            sendToYaneuraou(messageWithoutNewLine: "isready")
+            dispatch(.gameSummaryReceived)
         }
+        // TODO 時刻の受信
+        // dispatch csaRecv(command: "Time_Unit:1sec")
+        //        dispatch csaRecv(command: "Total_Time:30")
+        //        dispatch csaRecv(command: "Byoyomi:0")
+        //        dispatch csaRecv(command: "Increment:1")
+        // TODO 指定局面戦への対応ではBEGIN Positionの中の指し手を読む必要あり
     }
     
     func _handleCSACommandGame(command: String) {
-        var mayneedgo = false
-        if command.starts(with: "START") {
-            // TODO: STARTとAGREE返答時の初期化をどちらかに揃える
-            sendToYaneuraou(messageWithoutNewLine: "usinewgame")
-            moves = []
-            moveHistory = []
-            position.setHirate()
-            mayneedgo = true
-            lastGoScoreCp = nil
-        } else if command.starts(with: "+") || command.starts(with: "-") {
+        if command.starts(with: "+") || command.starts(with: "-") {
+            // 自分または相手の指し手
             csaKifu?.appendMove(moveCSAWithTime: command)
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
@@ -242,7 +615,6 @@ class CSAClient {
                 if move.isTerminal {
                     moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: nil, scoreCp: nil))
                 } else {
-                    mayneedgo = true
                     moves.append(move)
                     position.doMove(move: move)
                     
@@ -265,8 +637,19 @@ class CSAClient {
                     } catch {
                         print("error on extracting time")
                     }
-                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? lastGoScoreCp : nil))
+                    // TODO 評価値持ってない
+                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? 0 : nil))
                     print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
+                    
+                    // 手番を反転させて、思考開始
+                    if moveColor == myColor {
+                        // 自分が指した手が返ってきたので相手番
+                        // 厳密には、不正な指し手->#ILLEGAL_MOVE->#WINという順に受信する場合があり
+                        // 不正な指し手を受信した時点でponderが開始してしまい、思考エンジンに問題が発生するリスクがある。
+                        state = .opponentTurn
+                    } else {
+                        state = .myTurn
+                    }
                 }
             } else {
                 print("parse move failed")
@@ -278,139 +661,88 @@ class CSAClient {
         } else if command.starts(with: "%KACHI") {
             csaKifu?.appendMove(moveCSAWithTime: command)
             moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
-        } else if ["#WIN", "#LOSE", "#DRAW", "#CHUDAN", "#CENSORED"].contains(command) {
-            state = .end(gameResult: command)
-            // これを送るとサーバから切断される
-            // 対局終了時はサーバから自動的に切断される場合もある
-            // ponder中に終わる場合があるので一応stopしておく
-            sendToYaneuraou(messageWithoutNewLine: "stop")
-            // TODO: gameoverを送る必要？
-            self.sendCSA(message: "LOGOUT")
-            self.connection?.cancel()
-            csaKifu?.save()
-            csaKifu = nil
-        }
-        if mayneedgo {
-            if myColor == position.sideToMove {
-                // 自分の手番
-                myRemainingTime += csaConfig.timeIncrementSec
-                // remaining timeに今回手番側回ってきたことによる加算時間は含まない
-                let thinkingTime = ThinkingTime(ponder: false, remaining: myRemainingTime - csaConfig.timeIncrementSec, byoyomi: 0.0, fisher: csaConfig.timeIncrementSec)
-                runGo(thinkingTime: thinkingTime, secondCall: false)
-            }
-        }
-        
-        switch state {
-        case .end(let gameResult):
-            sendMatchStatus(gameState: .end(gameResult: gameResult))
-        default:
-            sendMatchStatus(gameState: .playing)
-        }
-    }
-    
-    func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
-        // ponderを止める
-        if goRunning {
-            sendToYaneuraou(messageWithoutNewLine: "stop")
-            if goRunning {
-                if !secondCall {
-                    print("waiting last go ends")
-                }
-                queue.asyncAfter(deadline: .now() + 0.01, execute: {
-                    self.runGo(thinkingTime: thinkingTime, secondCall: true)
-                })
-                return
-            }
-        }
-        goRunning = true
-        goRunningPonder = false
-        goRunningMoves = moves
-        // ponderが終わってから、positionを設定する
-        sendPositionToYane(moves: moves)
-        sendGoToYane(thinkingTime: thinkingTime, myColor: myColor!)
-    }
-    
-    private func sendPositionToYane(moves: [Move]) {
-        var positionCommand = "position startpos"
-        if moves.count > 0 {
-            positionCommand += " moves " + moves.map({ move in
-                move.toUSIString()
-            }).joined(separator: " ")
-        }
-        sendToYaneuraou(messageWithoutNewLine: positionCommand)
-    }
-    
-    private func sendGoToYane(thinkingTime: ThinkingTime, myColor: PColor) {
-        // TODO: 持ち時間の処理がこれでいいか確認する (USIでは、btimeとbincを足した時間が今回の思考時間)
-        var goCommand = ""
-        if thinkingTime.ponder {
-            goCommand = "go ponder btime 3600 wtime 3600 binc 1000"
+        } else if ["#WIN", "#LOSE", "#DRAW", "#CENSORED"].contains(command) {
+            // 対局終了
+            dispatch(.endGameReceived(reason: command))
+        } else if ["#TIME_UP", "#SENNICHITE", "#OUTE_SENNICHITE", "#JISHOGI", "#MAX_MOVES", "#ILLEGAL_MOVE", "#ILLEGAL_ACTION"].contains(command) {
+            // 時間切れや千日手等、勝敗が決する原因となる事象
+            // TODO 画面表示
+        } else if command == "#CHUDAN" {
+            // プロトコルによれば対局中断
+            // 再開手順が規定されていないため、単に無視する。
         } else {
-            if myColor == .BLACK {
-                goCommand = "go btime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) wtime 3600 "
-                if thinkingTime.fisher > 0.0 {
-                    goCommand += "binc \(Int((thinkingTime.fisher * 1000).rounded(.towardZero))) winc 1000"
-                } else {
-                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
-                }
+            print("unhandled CSA message \(command)")
+        }
+    }
+    
+    private func startConnection(serverEndpoint: NWEndpoint) {
+        recvBuffer = Data()
+        connection = NWConnection(to: serverEndpoint, using: .tcp)
+        connection?.stateUpdateHandler = {(newState) in
+            logger.log("stateUpdateHandler: \(String(describing: newState))")
+            print("stateUpdateHandler", newState)
+            switch newState {
+            case .ready:
+                self.dispatch(.csaConnected)
+            case .waiting(let nwError):
+                // ネットワーク構成が変化するまで待つ=事実上の接続失敗
+                self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
+                self.connection?.cancel()
+            case .cancelled:
+                self.connection = nil
+                // 接続が（自分からor相手からorエラーで）切断した
+                // TODO csaConfig.reconnect の場合再接続
+                self.dispatch(.csaDisconnected)
+            default:
+                break
+            }
+        }
+        connection?.start(queue: queue)
+        startRecv()
+    }
+    
+    private func startRecv() {
+        connection?.receive(minimumIncompleteLength: 0, maximumLength: 65535, completion: {(data,context,flag,error) in
+            if let error = error {
+                logger.error("receive error: \(String(describing: error))")
+                self.matchManager.displayMessage("CSA receive error \(error)")
+                // エラーはおそらく続行できないので接続切断
+                self.connection?.cancel()
             } else {
-                goCommand = "go btime 3600 wtime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) "
-                if thinkingTime.fisher > 0.0 {
-                    goCommand += "binc 1000 wing \(Int((thinkingTime.fisher * 1000).rounded(.towardZero)))"
+                if let data = data {
+                    self.recvBuffer.append(data)
+                    while true {
+                        if let lfPos = self.recvBuffer.firstIndex(of: 0x0a) {
+                            var lineEndPos = lfPos
+                            // CRをカット
+                            if lineEndPos > 0 && self.recvBuffer[lineEndPos - 1] == 0x0d {
+                                lineEndPos -= 1
+                            }
+                            if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
+                                self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
+                                self.dispatch(.csaRecv(command: commandStr))
+                            } else {
+                                print("Cannot decode CSA data as utf-8")
+                                self.matchManager.displayMessage("Cannot decode CSA data as utf-8")
+                            }
+                            // Data()で囲わないと、次のfirstIndexで返る値が接続開始時からの全文字列に対するindexになる？バグか仕様か不明
+                            self.recvBuffer = Data(self.recvBuffer[(lfPos+1)...])
+                        } else {
+                            break
+                        }
+                    }
+                    self.startRecv()
                 } else {
-                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                    // コネクション切断で発生
+                    logger.error("receive zero")
+                    self.matchManager.displayMessage("CSA disconnected")
+                    self.connection?.cancel()
                 }
             }
-        }
-        sendToYaneuraou(messageWithoutNewLine: goCommand)
+        })
     }
     
-    func runPonderIfPossible(bestMove: Move, movesForGo: [Move]) {
-        if !csaConfig.ponder {
-            return
-        }
-        if case .game = state {
-        } else {
-            // #CENSOREDなどを受信して終了した場合にponderしない
-            // 相手の指し手→自分の思考開始→直後に#CENSORED来る→player.stopでgoが終了→ここに来る可能性
-            return
-        }
-        if bestMove.isTerminal {
-            return
-        }
-        print("run ponder")
-        // goで思考した局面+bestMoveで進めた局面で思考
-        // ここでmovesを参照すると、通信タイミングによってbestmove適用前後のどちらか不定となるためまずい
-        goRunning = true
-        goRunningPonder = true
-        var posaftermove = movesForGo
-        posaftermove.append(bestMove)
-        goRunningMoves = posaftermove
-        sendPositionToYane(moves: posaftermove)
-        let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
-        sendGoToYane(thinkingTime: thinkingTime, myColor: myColor!)
-    }
-    
-    func setKeepalive() {
-        queue.asyncAfter(deadline: .now() + 10.0, execute: keepAlive)
-    }
-    
-    func keepAlive() {
-        // TCP接続維持のために、無送信状態が40秒続いたら空行を送る(30秒未満で送ると反則)
-        if lastSendTime.timeIntervalSinceNow < -40.0 {
-            print("keepalive at \(Date())")
-            _send(messageWithNewline: "\n")
-        }
-        setKeepalive()
-    }
-    
-    func _send(messageWithNewline: String) {
-        for line in messageWithNewline.components(separatedBy: "\n") {
-            if line.count > 0 {
-                logger.log("send: \(line)")
-                matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: line))
-            }
-        }
+    private func _send(messageWithNewline: String) {
         lastSendTime = Date()
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {
@@ -418,14 +750,30 @@ class CSAClient {
                 print("cannot send", messageWithNewline)
             }
         })
-        
     }
     
-    func sendCSA(message: String) {
+    private func sendCSA(message: String) {
         _send(messageWithNewline: message + "\n")
     }
     
-    func sendCSA(messages: [String]) {
+    private func sendCSA(messages: [String]) {
+        for m in messages {
+            logger.log("send: \(m)")
+            matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: m))
+        }
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())
+    }
+    
+    private func setKeepalive() {
+        queue.asyncAfter(deadline: .now() + 10.0, execute: keepAlive)
+    }
+    
+    private func keepAlive() {
+        // TCP接続維持のために、無送信状態が40秒続いたら空行を送る(30秒未満で送ると反則)
+        if lastSendTime.timeIntervalSinceNow < -40.0 {
+            print("keepalive at \(Date())")
+            _send(messageWithNewline: "\n")
+        }
+        setKeepalive()
     }
 }
