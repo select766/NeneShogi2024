@@ -215,15 +215,6 @@ struct ContentView: View {
                         Text(latestMessage)
                             .padding()
                         VStack {
-                            Text("USI client mode")
-                            Button(action: {
-                                start(serverType: "USI")
-                            }) {
-                                Text("Start USI")
-                            }
-                            TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
-                        }.padding()
-                        VStack {
                             Text("CSA client mode")
                             TextField("Config name", text: $csaConfigName).frame(width: 100.0, height: 20.0)
                             Group {
@@ -301,6 +292,15 @@ struct ContentView: View {
                                     csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
                                 }
                             }
+                        }.padding()
+                        VStack {
+                            Text("USI client mode")
+                            Button(action: {
+                                start(serverType: "USI")
+                            }) {
+                                Text("Start USI")
+                            }
+                            TextField("USI IP", text: $usiServerIpAddress).keyboardType(.asciiCapable).disableAutocorrection(true).frame(width: 200.0, height: 20.0)
                         }.padding()
                         HStack {
                             Button(action: testPosition) {
