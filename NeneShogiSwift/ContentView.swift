@@ -52,6 +52,7 @@ struct ContentView: View {
     @State var csaLoginName: String
     @State var csaLoginPassword: String
     @State var csaPonder: Bool
+    @State var csaSendScore: Bool
     @State var csaShowLoginPassword: Bool = false
     @State var matchRunning: Bool = false
     @State var serverType: String = "USI"
@@ -74,6 +75,7 @@ struct ContentView: View {
             csaLoginName = lastUsedConfig.loginName
             csaLoginPassword = lastUsedConfig.loginPassword
             csaPonder = lastUsedConfig.ponder
+            csaSendScore = lastUsedConfig.sendScore
         } else {
             csaConfigSelected = ""
             csaServerIpAddress = "127.0.0.1"
@@ -82,6 +84,7 @@ struct ContentView: View {
             csaLoginName = "nene"
             csaLoginPassword = "test-300-10F"
             csaPonder = true
+            csaSendScore = true
         }
     }
     
@@ -164,7 +167,7 @@ struct ContentView: View {
     }
     
     func formToCSAConfig() -> CSAConfig {
-        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder)
+        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, sendScore: csaSendScore)
     }
     
     func onStartCSAClick() {
@@ -247,6 +250,9 @@ struct ContentView: View {
                             Group {
                                 HStack {
                                     Toggle("Ponder", isOn: $csaPonder).frame(width: 200.0, height: 20.0)
+                                }
+                                HStack {
+                                    Toggle("Send Score", isOn: $csaSendScore).frame(width: 200.0, height: 20.0)
                                 }
                             }
                             HStack {
