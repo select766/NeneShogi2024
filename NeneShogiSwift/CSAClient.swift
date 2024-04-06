@@ -346,23 +346,27 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
             switch subcmd {
             case "depth":
                 // TODO: removeFirstはempty arrayに適用するとクラッシュするので要注意
-                let depth = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "seldepth":
-                let seldepth = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "time":
-                let time = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "nodes":
-                let nodes = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "pv":
                 pvUSI = tokens
             case "multipv":
-                let multipv = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "score":
                 let cpOrMate = tokens.removeFirst()
                 let value = tokens.removeFirst()
                 if tokens.count > 0 {
                     // lowerbound or upperbound
-                    let lbub = tokens.removeFirst()
+                    if tokens.first == "lowerbound" {
+                        tokens.removeFirst()
+                    } else if tokens.first == "upperbound" {
+                        tokens.removeFirst()
+                    }
                 }
                 if cpOrMate == "cp" {
                     score = Int(value)
@@ -385,13 +389,13 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                     }
                 }
             case "currmove":
-                let moveUSI = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "hashfull":
-                let hashFull = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "nps":
-                let nps = tokens.removeFirst()
+                let _ = tokens.removeFirst()
             case "string":
-                let infoString = tokens.joined(separator: " ")
+                let _ = tokens.joined(separator: " ")
             default:
                 // unknown
                 tokens = []
@@ -449,6 +453,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         case myTurn
         case opponentTurn
         case endingGame
+        case abortGame // 対局最中に切断・プロトコルエラーによりエンジンを終了（再接続設定がされていれば、再接続）
+        case disconnected
     }
     
     enum CSAActorEmitMessage {
@@ -516,6 +522,19 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             csaKifu = nil
             sendCSA(message: "LOGOUT")
             emit(.usi(.gameover(gameResult: "draw")))
+        case .abortGame:
+            csaKifu?.save()
+            csaKifu = nil
+            emit(.usi(.gameover(gameResult: "draw")))
+            queue.asyncAfter(deadline: .now() + 1.0, execute: {
+                self.state = .disconnected
+            })
+        case .disconnected:
+            if csaConfig.reconnect {
+                queue.asyncAfter(deadline: .now() + 10.0, execute: {
+                    self.dispatch(.connect)
+                })
+            }
         }
     }
     
@@ -581,8 +600,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 state = .waitingGameSummary
             case .csaDisconnected:
                 // 接続失敗
-                // TODO
-                state = .noConnection
+                state = .disconnected
                 break
             default:
                 unexpected(message)
@@ -596,7 +614,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 emit(.usi(.isready))
                 state = .waitingReadyok
             case .csaDisconnected:
-                state = .noConnection
+                state = .disconnected
             default:
                 unexpected(message)
             }
@@ -606,6 +624,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 // 対局開始するようサーバに送る(STARTの返送を期待)
                 sendCSA(message: "AGREE")
                 state = .waitingStart
+            case .csaDisconnected:
+                state = .disconnected
             default:
                 // 待機中の切断やREJECTもありうる
                 unexpected(message)
@@ -625,6 +645,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 } else {
                     unexpected(message)
                 }
+            case .csaDisconnected:
+                state = .disconnected
             default:
                 unexpected(message)
             }
@@ -650,6 +672,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 // 手番の転換は、サーバから消費時間が返ってきた時に行う（ponder開始がその分遅れるデメリットはある）
             case let .endGameReceived(reason: _):
                 state = .endingGame
+            case .csaDisconnected:
+                state = .abortGame
             default:
                 unexpected(message)
             }
@@ -659,6 +683,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 _handleCSACommandGame(command: command)
             case let .endGameReceived(reason: _):
                 state = .endingGame
+            case .csaDisconnected:
+                state = .abortGame
             default:
                 unexpected(message)
             }
@@ -670,11 +696,28 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                     unexpected(message)
                 }
             case .csaDisconnected:
-                state = .noConnection
+                state = .disconnected
             default:
                 unexpected(message)
             }
             break
+        case .abortGame:
+            switch message {
+            case .csaDisconnected:
+                break
+            default:
+                unexpected(message)
+            }
+        case .disconnected:
+            switch message {
+            case .connect:
+                // TODO: .noConnectとの重複を減らす
+                let serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.csaConfig.csaServerIpAddress), port: NWEndpoint.Port(rawValue: self.csaConfig.csaServerPort)!)
+                startConnection(serverEndpoint: serverEndpoint)
+                state = .connecting
+            default:
+                unexpected(message)
+            }
         }
         
         // TODO 状態の種類見直し
@@ -686,7 +729,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             matchStatusGameState = .initializing
         case .myTurn, .opponentTurn:
             matchStatusGameState = .playing
-        case .endingGame:
+        case .endingGame, .disconnected, .abortGame:
             matchStatusGameState = .end(gameResult: "Unknown")
         }
         matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: matchStatusGameState, players: players, position: position, moveHistory: moveHistory))
@@ -853,8 +896,11 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                 lineEndPos -= 1
                             }
                             if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
-                                self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
-                                self.dispatch(.csaRecv(command: commandStr))
+                                // 接続維持用の空行が受信される場合があるので無視
+                                if !commandStr.isEmpty {
+                                    self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
+                                    self.dispatch(.csaRecv(command: commandStr))
+                                }
                             } else {
                                 print("Cannot decode CSA data as utf-8")
                                 self.matchManager.displayMessage("Cannot decode CSA data as utf-8")
