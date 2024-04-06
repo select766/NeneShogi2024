@@ -732,7 +732,9 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         case .endingGame, .disconnected, .abortGame:
             matchStatusGameState = .end(gameResult: "Unknown")
         }
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: matchStatusGameState, players: players, position: position, moveHistory: moveHistory))
+        
+        // TODO 配列をGUIスレッドに送ると、レースコンディションで破損する事例があるので見直す
+        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: matchStatusGameState, players: forceArrayCopy(players), position: position.copy(), moveHistory: forceArrayCopy(moveHistory)))
     }
     
     private func initPosition() {

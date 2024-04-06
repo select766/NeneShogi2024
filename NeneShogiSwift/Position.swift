@@ -188,6 +188,10 @@ let _checkLongAttackPieces = [
     [ Piece.W_BISHOP, Piece.W_HORSE ],  // 右下
 ]
 
+private func forceHandCopy(_ hand: [[Int]]) -> [[Int]] {
+    return [forceArrayCopy(hand[0]), forceArrayCopy(hand[1])]
+}
+
 class Position {
     var board: [Piece]
     var hand: [[Int]]
@@ -200,8 +204,8 @@ class Position {
     var undoStack: [UndoMoveInfo]
     
     init() {
-        board = hirateBoard
-        hand = hirateHands
+        board = forceArrayCopy(hirateBoard)
+        hand = forceHandCopy(hirateHands)
         sideToMove = PColor.BLACK
         gamePly = 1
         originSFEN = hirateSFEN
@@ -215,17 +219,18 @@ class Position {
     
     func copy() -> Position {
         let dst = Position()
-        dst.board = board
-        dst.hand = hand
+        dst.board = forceArrayCopy(board)
+        dst.hand = forceHandCopy(hand)
         dst.sideToMove = sideToMove
         dst.gamePly = gamePly
         dst.originSFEN = originSFEN
-        dst.hashHistory = hashHistory
-        dst.checkHistory = checkHistory
-        dst.moveStack = moveStack
-        dst.undoStack = undoStack
+        dst.hashHistory = forceArrayCopy(hashHistory)
+        dst.checkHistory = forceArrayCopy(checkHistory)
+        dst.moveStack = forceArrayCopy(moveStack)
+        dst.undoStack = forceArrayCopy(undoStack)
         return dst
     }
+    
     
     func setHirate() {
         board = hirateBoard
