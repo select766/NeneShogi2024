@@ -42,7 +42,7 @@ struct ScoreBarView: View {
                 } else {
                     Text(matchStatus.csaGameState.description)
                 }
-                Text("△\(matchStatus.players[1] ?? "?")").font(.system(size: gridSizeW * 0.4)).frame(maxWidth: gridSizeW * 2.5)
+                Text("△\(matchStatus.players[1] ?? "?")").foregroundStyle(.black).font(.system(size: gridSizeW * 0.4)).frame(maxWidth: gridSizeW * 2.5)
             }.frame(width: gridSizeW * 16.875, height: gridSizeH * 0.5).background(Color.yellow.edgesIgnoringSafeArea([]))
             // .edgesIgnoringSafeArea([]) がないと、セーフエリア外に黄色背景が伸びる
         }.frame(maxWidth: .infinity)
