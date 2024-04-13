@@ -76,6 +76,14 @@ func startYaneuraou(recvCallback: @escaping (String) -> Void) {
     yaneRecvCallback = recvCallback
     let compute_units: Int32 = 2 // 0:cpu, 1: cpuandgpu, 2: all (neural engine)
     let model_url_p = stringToUnsafeMutableBufferPointer(DlShogiResnet.urlOfModelInThisBundle.absoluteString)
+
+    // 定跡をパス "./user_book1.db" で読めるようにカレントディレクトリを変更
+    if let book_path = Bundle.main.path(forResource: "user_book1", ofType: "db") {
+        let book_path_url = URL(fileURLWithPath: book_path)
+        let directory_path = book_path_url.deletingLastPathComponent().path
+        FileManager.default.changeCurrentDirectoryPath(directory_path)
+    }
+
     YaneuraOuiOSSPM.yaneuraou_ios_main(usiRead, usiWrite, model_url_p.baseAddress!, compute_units)
 }
 

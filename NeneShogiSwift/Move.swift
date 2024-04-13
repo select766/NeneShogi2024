@@ -38,12 +38,18 @@ struct Move: Equatable {
         return moveTo.square + (moveFrom.square << 7) + (moveDroppedPiece << 7) + (isDrop ? 16384 : 0) + (isPromote ? 32768 : 0)
     }
     
+    static let moveUSIRegex = try! NSRegularExpression(pattern: "^([1-9][a-i]|[PLNSGBR]\\*)[1-9][a-i]\\+?$")
+    
     static func fromUSIString(moveUSI: String) -> Move? {
         if moveUSI == "resign" {
             return Move.Resign
         }
         if moveUSI == "win" {
             return Move.Win
+        }
+        if moveUSIRegex.matches(in: moveUSI, range: NSRange(location: 0, length: moveUSI.utf16.count)).count == 0 {
+            // 定跡ヒット時などに、読み筋にフォーマットに沿わない情報が出てくる場合がある
+            return nil
         }
         guard let rawAscii = moveUSI.data(using: .ascii) else {
             return nil
