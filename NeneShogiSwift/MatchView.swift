@@ -18,7 +18,7 @@ struct MatchView: View {
 
     var body: some View {
         Group {
-            MatchStaticView(matchStatus: match.matchStatus, communicationHistory: match.communicationHistory)
+            MatchStaticView(searchProgress: match.searchProgress, matchStatus: match.matchStatus, communicationHistory: match.communicationHistory)
         }.onAppear {
             start()
         }

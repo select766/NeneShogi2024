@@ -139,6 +139,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
         case launchCompleted
     }
     
+    
     let callback: CSAStatusCallback
     var positionForGo: Position? = nil
     var pendingMessageOnPonder: USIActorMessage? = nil
@@ -260,7 +261,19 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                 state = .endGameWaiting
             case let .usiRecv(commandType: commandType, commandArg: commandArg):
                 if commandType == "info" {
-                    parseGoInfo(commandArg: commandArg, ponder: false)
+                    if let commandArg = commandArg {
+                        let searchProgress = USISearchProgress.parseGoInfo(commandArg: commandArg)
+                        // 最後に受信したPV, ScoreをbestmoveのPV, Scoreとみなす
+                        if let pvUSI = searchProgress.pvUSI {
+                            self.pvUSI = pvUSI
+                        }
+                        if let pvScore = searchProgress.score {
+                            self.pvScore = pvScore
+                        }
+                        if let positionForGo = positionForGo {
+                            emit(.csa(.searchProgress(position: positionForGo, usiSearchProgress: searchProgress)))
+                        }
+                    }
                 } else if commandType == "bestmove" {
                     if let positionForGo = positionForGo, let commandArg = commandArg {
                         let parts = commandArg.split(separator: " ")
@@ -334,86 +347,6 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
         }
     }
     
-    private func parseGoInfo(commandArg: String?, ponder: Bool) -> Void {
-        guard let commandArg = commandArg else {
-            return
-        }
-        
-        // TODO: npsなどをパース
-        var score: Int? = nil
-        var pvUSI: [String]? = nil
-        var tokens: [String] = commandArg.split(separator: " ").map{s in String(s)}
-        while tokens.count > 0 {
-            let subcmd = tokens.removeFirst()
-            switch subcmd {
-            case "depth":
-                // TODO: removeFirstはempty arrayに適用するとクラッシュするので要注意
-                let _ = tokens.removeFirst()
-            case "seldepth":
-                let _ = tokens.removeFirst()
-            case "time":
-                let _ = tokens.removeFirst()
-            case "nodes":
-                let _ = tokens.removeFirst()
-            case "pv":
-                pvUSI = tokens
-            case "multipv":
-                let _ = tokens.removeFirst()
-            case "score":
-                let cpOrMate = tokens.removeFirst()
-                let value = tokens.removeFirst()
-                if tokens.count > 0 {
-                    // lowerbound or upperbound
-                    if tokens.first == "lowerbound" {
-                        tokens.removeFirst()
-                    } else if tokens.first == "upperbound" {
-                        tokens.removeFirst()
-                    }
-                }
-                if cpOrMate == "cp" {
-                    score = Int(value)
-                } else if cpOrMate == "mate" {
-                    let mateBase = 32000
-                    if let parsedValue = Int(value) {
-                        if parsedValue > 0 {
-                            // 手番側が parsedValue 手で勝つ
-                            score = mateBase - parsedValue
-                        } else {
-                            // 相手側が -parsedValue 手で勝つ
-                            score = -mateBase - parsedValue
-                        }
-                    } else {
-                        if value == "+" {
-                            score = mateBase
-                        } else if value == "-" {
-                            score = -mateBase
-                        }
-                    }
-                }
-            case "currmove":
-                let _ = tokens.removeFirst()
-            case "hashfull":
-                let _ = tokens.removeFirst()
-            case "nps":
-                let _ = tokens.removeFirst()
-            case "string":
-                let _ = tokens.joined(separator: " ")
-            default:
-                // unknown
-                tokens = []
-                break
-            }
-        }
-        
-        if pvUSI != nil {
-            self.pvUSI = pvUSI
-        }
-        
-        if score != nil {
-            self.pvScore = score
-        }
-    }
-    
     private func yaneRecv(command: String) -> Void {
         print("yaneRecv \(command)")
         // やねうら王からメッセージを受信した（queueのスレッドで呼ばれる）
@@ -441,6 +374,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         case csaRecv(command: String)
         case gameSummaryReceived
         case readyok
+        case searchProgress(position: Position, usiSearchProgress: USISearchProgress)
         case bestmove(position: Position, moveUSI: String, ponderUSI: String?, score: Int?, pvUSI: [String]?)
         case endGameReceived(reason: String)
     }
@@ -652,6 +586,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                         state = .opponentTurn
                     }
                 } else {
+                    // TODO REJECTの正しい対応
                     unexpected(message)
                 }
             case .csaDisconnected:
@@ -663,12 +598,31 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             switch message {
             case let .csaRecv(command: command):
                 _handleCSACommandGame(command: command)
+            case let .searchProgress(position: position, usiSearchProgress: usiSearchProgress):
+                // Positionを用いてPVを変換してSearchProgressを作成
+                let pos = position.copy()
+                // PVのある行だけ処理（info stringな行は無視する）
+                if let pvUSI = usiSearchProgress.pvUSI {
+                    var pv: [DetailedMove] = []
+                    for moveUSI in pvUSI {
+                        if let move = Move.fromUSIString(moveUSI: moveUSI) {
+                            pv.append(pos.makeDetailedMove(move: move))
+                            pos.doMove(move: move)
+                        } else {
+                            // なんらかの問題でパースできない
+                            break
+                        }
+                    }
+                    
+                    callback.updateSearchProgress(searchProgress: SearchProgress(position: position.copy(), pv: pv, score: usiSearchProgress.score, nps: usiSearchProgress.nps))
+                }
+                break
             case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _, score: score, pvUSI: _):
                 guard let bestMove = Move.fromUSIString(moveUSI: moveUSI) else {
                     fatalError()
                 }
                 let bestMoveCSA = positionForGo.makeCSAMove(move: bestMove)
-                // TODO pvUSIを送る
+                // TODO pvUSIを送る(先頭がbestmoveと一致するかチェック必要)
                 myScoreCp = score
                 let moveMessage: String
                 if let score = score, csaConfig.sendScore {

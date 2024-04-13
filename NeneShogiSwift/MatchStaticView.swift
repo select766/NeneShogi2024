@@ -36,8 +36,6 @@ struct MatchStaticView: View {
                     // BoardViewが親ビューに合わせて最大限大きくなるよう自分のサイズを決める。残りをVStackの各ビューが使う。
                     BoardView(maxSize: geometry.size, matchStatus: matchStatus)
                     VStack(spacing: 0) {
-                        ScoreBarView(matchStatus: matchStatus)
-                        ScoreChartView(matchStatus: matchStatus)
                         if debugView {
                             ScrollView(.vertical, showsIndicators: true) {
                                 ScrollViewReader {
@@ -51,16 +49,18 @@ struct MatchStaticView: View {
                                     })
                                 }
                                 
-                            }.frame(maxWidth: .infinity, maxHeight: gridSize * 9.375)
+                            }.frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
+                            ScoreBarView(matchStatus: matchStatus)
+                            ScoreChartView(matchStatus: matchStatus)
                             if let searchProgress = searchProgress {
                                 PVView(searchProgress: searchProgress)
                             }
                             
                             // 縦方向残り領域全部を使いたいが方法がわからない
-                            MoveHistoryView(matchStatus: matchStatus).frame(height: 300)
+                            MoveHistoryView(matchStatus: matchStatus).frame(height: 200)
+                            Spacer()
                         }
-                        Spacer()
                         Button(action: {
                             debugView = !debugView
                         }) {
