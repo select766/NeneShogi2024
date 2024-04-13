@@ -348,6 +348,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     }
     
     private func yaneRecv(command: String) -> Void {
+        callback.appendCommnicationHistory("U< \(command)")
         print("yaneRecv \(command)")
         // やねうら王からメッセージを受信した（queueのスレッドで呼ばれる）
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
@@ -360,6 +361,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     }
     
     private func yaneSend(_ commandWithoutNewLine: String) -> Void {
+        callback.appendCommnicationHistory("U> \(commandWithoutNewLine)")
         print("yaneSend \(commandWithoutNewLine)")
         sendToYaneuraou(messageWithoutNewLine: commandWithoutNewLine)
     }
