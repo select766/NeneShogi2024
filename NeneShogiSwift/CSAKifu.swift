@@ -58,7 +58,7 @@ P9+KY+KE+GI+KI+OU+KI+GI+KE+KY
             return false
         }
         
-        loggerForCSAKifu.info("Written kifu to \(self.fileName)")
+        loggerForCSAKifu.notice("Written kifu to \(self.fileName)")
         return true
     }
 }
