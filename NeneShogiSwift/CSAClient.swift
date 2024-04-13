@@ -64,7 +64,7 @@ class Actor<T,U: Equatable,V> {
     
     func dispatch(_ message: T) -> Void {
         queue.async {
-            print("dispatch \(message)")
+            logger.debug("dispatch \(type(of: message)) \(String(describing: message), privacy: .public)")
             self._dispatch(message: message)
         }
     }
@@ -152,7 +152,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     }
     
     override func stateChanged(newState: USIActorState, lastState: USIActorState) {
-        print("usi state: \(newState) <- \(lastState)")
+        logger.debug("usi state: \(String(describing: newState)) <- \(String(describing: lastState))")
         switch newState {
         case .gameGoing:
             pvScore = nil
@@ -283,7 +283,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                         self.positionForGo = nil
                         state = .gameIdle
                     } else {
-                        print("wrong condition for bestmove")
+                        logger.error("wrong condition for bestmove: \(String(describing: message))")
                         unexpected(message)
                     }
                 } else {
@@ -298,7 +298,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                 // TODO ponderhit (今は常にstopで止めて、ponderは単に置換表を埋めている形）
                 // ponderをstopで終了して、bestmoveが来てからgoを送りたい
                 if pendingMessageOnPonder != nil {
-                    print("multiple go/ponder requests while running previous ponder")
+                    logger.error("multiple go/ponder requests while running previous ponder")
                     // error
                 }
                 pendingMessageOnPonder = message
@@ -306,7 +306,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
             case .ponder:
                 // ponderをstopで終了して、bestmoveが来てからgo ponderを送りたい
                 if pendingMessageOnPonder != nil {
-                    print("multiple go/ponder requests while running previous ponder")
+                    logger.error("multiple go/ponder requests while running previous ponder")
                     // error
                 }
                 pendingMessageOnPonder = message
@@ -337,7 +337,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
             // gameoverを送ったタイミングにより、bestmoveが来たりこなかったりするので少し待つ
             switch message {
             case let .usiRecv(commandType: commandType, commandArg: _):
-                print("discarding usi message after gameover: \(commandType)")
+                logger.info("discarding usi message after gameover: \(commandType)")
             case .endGameWaitEnd:
                 state = .waitingGame
             default:
@@ -349,7 +349,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     private func yaneRecv(command: String) -> Void {
         callback.appendCommnicationHistory("U< \(command)")
-        print("yaneRecv \(command)")
+        logger.debug("U< \(command)")
         // やねうら王からメッセージを受信した（queueのスレッドで呼ばれる）
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         if splits.count < 1 {
@@ -362,7 +362,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     private func yaneSend(_ commandWithoutNewLine: String) -> Void {
         callback.appendCommnicationHistory("U> \(commandWithoutNewLine)")
-        print("yaneSend \(commandWithoutNewLine)")
+        logger.debug("U> \(commandWithoutNewLine)")
         sendToYaneuraou(messageWithoutNewLine: commandWithoutNewLine)
     }
 }
@@ -433,7 +433,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     override func stateChanged(newState: CSAActorState, lastState: CSAActorState) -> Void {
-        print("state: \(newState) <- \(lastState)")
+        logger.debug("csa state: \(String(describing: newState)) <- \(String(describing: lastState))")
         switch newState {
         case .noConnection:
             break
@@ -775,7 +775,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             csaKifu?.appendMove(moveCSAWithTime: command)
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
-                print("parsed move: \(move.toUSIString())")
+                logger.info("parsed move: \(move.toUSIString())")
                 let detail = position.makeDetailedMove(move: move)
                 if move.isTerminal {
                     moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: detail, usedTime: nil, scoreCp: nil))
@@ -795,20 +795,19 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                 usedTime = timeParsed
                                 if moveColor == myColor {
                                     // 自分の消費時間
-                                    print("I used \(timeParsed) sec")
+                                    logger.info("I used \(timeParsed) sec")
                                     myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime - timeParsed, decreasing: myRemainingTime.decreasing)
                                 } else {
                                     // 相手の消費時間
-                                    print("Opponent used \(timeParsed) sec")
+                                    logger.info("Opponent used \(timeParsed) sec")
                                     opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime - timeParsed, decreasing: opponentRemainingTime.decreasing)
                                 }
                             }
                         }
                     } catch {
-                        print("error on extracting time")
+                        logger.error("error on extracting time")
                     }
                     moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
-                    print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
                     
                     // 手番を反転させて、思考開始
                     if moveColor == myColor {
@@ -821,7 +820,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                     }
                 }
             } else {
-                print("parse move failed")
+                logger.error("parse move failed")
             }
         } else if command.starts(with: "%TORYO") {
             // プロトコル説明では、%TORYO,T10のように消費時間が来るとの説明があるが、floodgateの実装では消費時間情報はついていない。選手権サーバではついている。念のため先頭一致で処理する
@@ -840,7 +839,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             // プロトコルによれば対局中断
             // 再開手順が規定されていないため、単に無視する。
         } else {
-            print("unhandled CSA message \(command)")
+            logger.error("unhandled CSA message \(command)")
         }
     }
     
@@ -848,8 +847,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         recvBuffer = Data()
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
-            logger.log("stateUpdateHandler: \(String(describing: newState))")
-            print("stateUpdateHandler", newState)
+            logger.debug("stateUpdateHandler: \(String(describing: newState))")
             switch newState {
             case .ready:
                 self.dispatch(.csaConnected)
@@ -894,7 +892,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                     self.dispatch(.csaRecv(command: commandStr))
                                 }
                             } else {
-                                print("Cannot decode CSA data as utf-8")
+                                logger.error("C! Cannot decode CSA data as utf-8")
                                 self.callback.appendCommnicationHistory("C! Cannot decode CSA data as utf-8")
                             }
                             // Data()で囲わないと、次のfirstIndexで返る値が接続開始時からの全文字列に対するindexになる？バグか仕様か不明
@@ -918,23 +916,20 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         lastSendTime = Date()
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in
             if let error = error {
-                logger.error("send error: \(String(describing: error))")
-                print("cannot send", messageWithNewline)
+                logger.error("send error: \(String(describing: error)) while sending \(messageWithNewline)")
             }
         })
     }
     
     private func sendCSA(message: String) {
-        logger.log("send: \(message)")
-        print("csasend \(message)")
+        logger.debug("C> \(message)")
         callback.appendCommnicationHistory("C> \(message)")
         _send(messageWithNewline: message + "\n")
     }
     
     private func sendCSA(messages: [String]) {
         for m in messages {
-            logger.log("send: \(m)")
-            print("csasend \(m)")
+            logger.debug("C> \(m)")
             callback.appendCommnicationHistory("C> \(m)")
         }
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())
@@ -947,7 +942,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     private func keepAlive() {
         // TCP接続維持のために、無送信状態が40秒続いたら空行を送る(30秒未満で送ると反則)
         if lastSendTime.timeIntervalSinceNow < -40.0 {
-            print("keepalive at \(Date())")
+            logger.debug("keepalive at \(Date())")
             _send(messageWithNewline: "\n")
         }
         setKeepalive()

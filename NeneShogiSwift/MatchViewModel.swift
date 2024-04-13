@@ -6,6 +6,10 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "jp.outlook.select766.NeneShogiSwift", category: "MatchViewModel")
+
 
 struct MoveHistoryItem {
     let positionBeforeMove: Position
@@ -145,7 +149,7 @@ struct USISearchProgress {
                 tokens = []
             default:
                 // unknown
-                print("unknown usi info token \(subcmd)")
+                logger.warning("unknown usi info token \(subcmd)")
                 tokens = []
             }
         }
@@ -258,7 +262,7 @@ class MatchViewModel: ObservableObject {
     
     func startCSA(csaConfig: CSAConfig) {
         if engineMode != nil {
-            print("warning: start called twice")
+            logger.error("startCSA called twice")
             return
         }
         engineMode = .CSA
@@ -268,7 +272,7 @@ class MatchViewModel: ObservableObject {
     
     func startUSI(usiConfig: USIConfig) {
         if engineMode != nil {
-            print("warning: start called twice")
+            logger.error("startUSI called twice")
             return
         }
         engineMode = .USI
