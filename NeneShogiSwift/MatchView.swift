@@ -20,7 +20,11 @@ struct MatchView: View {
         Group {
             MatchStaticView(searchProgress: match.searchProgress, matchStatus: match.matchStatus, communicationHistory: match.communicationHistory)
         }.onAppear {
+            // スリープさせない
+            UIApplication.shared.isIdleTimerDisabled = true
             start()
+        }.onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 
