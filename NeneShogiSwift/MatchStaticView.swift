@@ -51,11 +51,9 @@ struct MatchStaticView: View {
                                 
                             }.frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
-                            ScoreBarView(matchStatus: matchStatus)
+                            ScoreBarTwoRowsView(matchStatus: matchStatus)
                             ScoreChartView(matchStatus: matchStatus)
-                            if let searchProgress = searchProgress {
-                                PVView(searchProgress: searchProgress)
-                            }
+                            PVView(searchProgress: searchProgress)
                             
                             // 縦方向残り領域全部を使いたいが方法がわからない
                             MoveHistoryView(matchStatus: matchStatus).frame(height: 200)
