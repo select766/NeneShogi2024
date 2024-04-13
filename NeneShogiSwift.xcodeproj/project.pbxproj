@@ -16,6 +16,7 @@
 		74B0E30D2BCA1594002040E9 /* MatchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */; };
 		74B0E30F2BCA307F002040E9 /* ConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E30E2BCA307F002040E9 /* ConfigView.swift */; };
 		74B0E3112BCA7773002040E9 /* ScoreBarTwoRowsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3102BCA7773002040E9 /* ScoreBarTwoRowsView.swift */; };
+		74B0E3132BCA83CD002040E9 /* DefaultUSIOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3122BCA83CD002040E9 /* DefaultUSIOptions.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
 		AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4DA27B8BED700ED174E /* ContentView.swift */; };
@@ -73,6 +74,7 @@
 		74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchViewModel.swift; sourceTree = "<group>"; };
 		74B0E30E2BCA307F002040E9 /* ConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigView.swift; sourceTree = "<group>"; };
 		74B0E3102BCA7773002040E9 /* ScoreBarTwoRowsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBarTwoRowsView.swift; sourceTree = "<group>"; };
+		74B0E3122BCA83CD002040E9 /* DefaultUSIOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultUSIOptions.swift; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -164,6 +166,7 @@
 				AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */,
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
 				74B0E30E2BCA307F002040E9 /* ConfigView.swift */,
+				74B0E3122BCA83CD002040E9 /* DefaultUSIOptions.swift */,
 				7410BC872BB9072900E05DF0 /* MatchView.swift */,
 				7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */,
 				AA90C4DC27B8BEDD00ED174E /* Assets.xcassets */,
@@ -375,6 +378,7 @@
 				AA9C013927C1CF8E00BB71E0 /* Piece.swift in Sources */,
 				AACEC881281CE5AD00517C11 /* PVView.swift in Sources */,
 				AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */,
+				74B0E3132BCA83CD002040E9 /* DefaultUSIOptions.swift in Sources */,
 				AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */,
 				AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */,
 				AACEC8772813DC1900517C11 /* MatchStatus.swift in Sources */,
