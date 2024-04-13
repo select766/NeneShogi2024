@@ -13,6 +13,8 @@
 		7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */; };
 		7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */; };
 		74B0E3052BC16BAE002040E9 /* util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3042BC16BAE002040E9 /* util.swift */; };
+		74B0E30D2BCA1594002040E9 /* MatchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */; };
+		74B0E30F2BCA307F002040E9 /* ConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E30E2BCA307F002040E9 /* ConfigView.swift */; };
 		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
@@ -68,6 +70,8 @@
 		7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet.mlmodel; sourceTree = "<group>"; };
 		7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineCommunicator.swift; sourceTree = "<group>"; };
 		74B0E3042BC16BAE002040E9 /* util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = util.swift; sourceTree = "<group>"; };
+		74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchViewModel.swift; sourceTree = "<group>"; };
+		74B0E30E2BCA307F002040E9 /* ConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigView.swift; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
@@ -159,6 +163,7 @@
 				AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */,
 				AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */,
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
+				74B0E30E2BCA307F002040E9 /* ConfigView.swift */,
 				7410BC872BB9072900E05DF0 /* MatchView.swift */,
 				7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */,
 				AA90C4DC27B8BEDD00ED174E /* Assets.xcassets */,
@@ -188,6 +193,7 @@
 				AACEC882281D0D0300517C11 /* ScoreChartView.swift */,
 				7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */,
 				74B0E3042BC16BAE002040E9 /* util.swift */,
+				74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */,
 			);
 			path = NeneShogiSwift;
 			sourceTree = "<group>";
@@ -361,6 +367,7 @@
 				AA9C013327C1C5DE00BB71E0 /* Move.swift in Sources */,
 				AA9C013727C1CCB800BB71E0 /* Color.swift in Sources */,
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,
+				74B0E30F2BCA307F002040E9 /* ConfigView.swift in Sources */,
 				AACEC87B281BD82900517C11 /* BoardView.swift in Sources */,
 				74B0E3052BC16BAE002040E9 /* util.swift in Sources */,
 				AACEC883281D0D0500517C11 /* ScoreChartView.swift in Sources */,
@@ -380,6 +387,7 @@
 				AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */,
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,
 				7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */,
+				74B0E30D2BCA1594002040E9 /* MatchViewModel.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
 				AACEC873281394AF00517C11 /* CSAConfig.swift in Sources */,
 				AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */,

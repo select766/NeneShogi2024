@@ -22,10 +22,10 @@ class CSAClient {
     let usiActor: USIActor
     let csaActor: CSAActor
     
-    init(matchManager: MatchManager, csaConfig: CSAConfig) {
+    init(callback: CSAStatusCallback, csaConfig: CSAConfig) {
         queue = DispatchQueue(label: "csaClient")
-        usiActor = USIActor(queue: queue)
-        csaActor = CSAActor(queue: queue, csaConfig: csaConfig, matchManager: matchManager)
+        usiActor = USIActor(queue: queue, callback: callback)
+        csaActor = CSAActor(queue: queue, csaConfig: csaConfig, callback: callback)
     }
     
     func start() {
@@ -139,12 +139,14 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
         case launchCompleted
     }
     
+    let callback: CSAStatusCallback
     var positionForGo: Position? = nil
     var pendingMessageOnPonder: USIActorMessage? = nil
     var pvScore: Int? = nil
     var pvUSI: [String]? = nil
     
-    init(queue: DispatchQueue) {
+    init(queue: DispatchQueue, callback: CSAStatusCallback) {
+        self.callback = callback
         super.init(queue: queue, initialState: .beforeLaunch)
     }
     
@@ -462,7 +464,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     let csaConfig: CSAConfig
-    let matchManager: MatchManager
+    let callback: CSAStatusCallback
     
     // 状態
     var myColor: PColor?
@@ -470,12 +472,13 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     // moves, positionはサーバから受信した指し手で変化させる（自分の指し手で直接変化させない）
     var moves: [Move]
     var position: Position
-    var myRemainingTime: Double = 0.0
-    var opponentRemainingTime: Double = 0.0
+    var myRemainingTime: RemainingTime = RemainingTime(remainingTime: 0.0, decreasing: false)
+    var opponentRemainingTime: RemainingTime = RemainingTime(remainingTime: 0.0, decreasing: false)
     var moveHistory: [MoveHistoryItem] = []
     var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
     var csaTimeConfig: CSATimeConfig = CSATimeConfig(totalTime: 0.0, byoyomi: 10.0, increment: 0.0)
     var myScoreCp: Int? = nil
+    var lastGameResult: String? = nil
     var _tmpGameSummary: [String: String] = [:] // Game_Summary受信中の情報を蓄積する
     
     // 通信管理
@@ -484,9 +487,9 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     var lastSendTime: Date = Date()
     
     
-    init(queue: DispatchQueue, csaConfig: CSAConfig, matchManager: MatchManager) {
+    init(queue: DispatchQueue, csaConfig: CSAConfig, callback: CSAStatusCallback) {
         self.csaConfig = csaConfig
-        self.matchManager = matchManager
+        self.callback = callback
         moves = []
         position = Position()
         super.init(queue: queue, initialState: .noConnection)
@@ -508,21 +511,27 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             break
         case .myTurn:
             // 自分の手番になった
-            myRemainingTime += csaTimeConfig.increment
+            myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime + csaTimeConfig.increment, decreasing: true)
+            opponentRemainingTime = opponentRemainingTime.stopDecreasing()
             runGo(ponder: false)
         case .opponentTurn:
             // 相手の手番
-            opponentRemainingTime += csaTimeConfig.increment
+            opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime + csaTimeConfig.increment, decreasing: true)
+            myRemainingTime = myRemainingTime.stopDecreasing()
             if csaConfig.ponder {
                 runGo(ponder: true)
             }
             break
         case .endingGame:
+            myRemainingTime = myRemainingTime.stopDecreasing()
+            opponentRemainingTime = opponentRemainingTime.stopDecreasing()
             csaKifu?.save()
             csaKifu = nil
             sendCSA(message: "LOGOUT")
             emit(.usi(.gameover(gameResult: "draw")))
         case .abortGame:
+            myRemainingTime = myRemainingTime.stopDecreasing()
+            opponentRemainingTime = opponentRemainingTime.stopDecreasing()
             csaKifu?.save()
             csaKifu = nil
             emit(.usi(.gameover(gameResult: "draw")))
@@ -544,7 +553,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     
     private func runGo(ponder: Bool) {
         // remaining timeに今回手番側回ってきたことによる加算時間は含まない
-        let thinkingTime = ThinkingTime(ponder: ponder, remaining: max(myRemainingTime - csaTimeConfig.increment, 0.0), byoyomi: csaTimeConfig.byoyomi, fisher: csaTimeConfig.increment)
+        let thinkingTime = ThinkingTime(ponder: ponder, remaining: max(myRemainingTime.remainingTime - csaTimeConfig.increment, 0.0), byoyomi: csaTimeConfig.byoyomi, fisher: csaTimeConfig.increment)
         
         var positionCommand = "position startpos"
         if moves.count > 0 {
@@ -654,7 +663,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             switch message {
             case let .csaRecv(command: command):
                 _handleCSACommandGame(command: command)
-            case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _, score: score, pvUSI: pvUSI):
+            case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _, score: score, pvUSI: _):
                 guard let bestMove = Move.fromUSIString(moveUSI: moveUSI) else {
                     fatalError()
                 }
@@ -670,7 +679,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 }
                 self.sendCSA(message: moveMessage)
                 // 手番の転換は、サーバから消費時間が返ってきた時に行う（ponder開始がその分遅れるデメリットはある）
-            case let .endGameReceived(reason: _):
+            case let .endGameReceived(reason: reason):
+                lastGameResult = reason
                 state = .endingGame
             case .csaDisconnected:
                 state = .abortGame
@@ -681,7 +691,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             switch message {
             case let .csaRecv(command: command):
                 _handleCSACommandGame(command: command)
-            case let .endGameReceived(reason: _):
+            case let .endGameReceived(reason: reason):
+                lastGameResult = reason
                 state = .endingGame
             case .csaDisconnected:
                 state = .abortGame
@@ -720,30 +731,52 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             }
         }
         
-        // TODO 状態の種類見直し
-        let matchStatusGameState: MatchStatus.GameState
+        emitState()
+    }
+    
+    private func emitState() {
+        let csaGameState: CSAGameState
         switch state {
-        case .connecting, .noConnection:
-            matchStatusGameState = .connecting
-        case .waitingStart, .waitingReadyok, .waitingGameSummary:
-            matchStatusGameState = .initializing
-        case .myTurn, .opponentTurn:
-            matchStatusGameState = .playing
-        case .endingGame, .disconnected, .abortGame:
-            matchStatusGameState = .end(gameResult: "Unknown")
+        case .noConnection:
+            csaGameState = .initializingUSI
+        case .connecting:
+            csaGameState = .initializingCSA
+        case .waitingGameSummary:
+            csaGameState = .waitingNewGame
+        case .waitingReadyok:
+            csaGameState = .initializingNewGame
+        case .waitingStart:
+            csaGameState = .waitingGameStart
+        case .myTurn:
+            csaGameState = .playing
+        case .opponentTurn:
+            csaGameState = .playing
+        case .endingGame:
+            csaGameState = .ended
+        case .abortGame:
+            csaGameState = .ended
+        case .disconnected:
+            csaGameState = .ended
         }
         
-        // TODO 配列をGUIスレッドに送ると、レースコンディションで破損する事例があるので見直す
-        matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: matchStatusGameState, players: forceArrayCopy(players), position: position.copy(), moveHistory: forceArrayCopy(moveHistory)))
+        // 配列をGUIスレッドに送ると、レースコンディションで破損する事例があるのでforceArrayCopyを使う
+        callback.updateMatchStatus(
+            players: forceArrayCopy(players),
+            moveHistory: forceArrayCopy(moveHistory),
+            remainingTimes: myColor == .BLACK ? [myRemainingTime, opponentRemainingTime] : [opponentRemainingTime, myRemainingTime],
+            csaGameState: csaGameState,
+            lastGameResult: lastGameResult
+        )
     }
     
     private func initPosition() {
         // 対局開始時に呼び出し、局面情報、持ち時間を初期化する
-        myRemainingTime = csaTimeConfig.totalTime
-        opponentRemainingTime = csaTimeConfig.totalTime
+        myRemainingTime = RemainingTime(remainingTime: csaTimeConfig.totalTime, decreasing: false)
+        opponentRemainingTime = RemainingTime(remainingTime: csaTimeConfig.totalTime, decreasing: false)
         moves = []
         moveHistory = []
         position.setHirate()
+        lastGameResult = nil
         csaKifu = CSAKifu(players: players)
     }
     
@@ -789,9 +822,10 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 print("parsed move: \(move.toUSIString())")
                 let detail = position.makeDetailedMove(move: move)
                 if move.isTerminal {
-                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: nil, scoreCp: nil))
+                    moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: detail, usedTime: nil, scoreCp: nil))
                 } else {
                     moves.append(move)
+                    let positionBeforeMove = position.copy()
                     position.doMove(move: move)
                     
                     // 消費時間の計算
@@ -806,18 +840,18 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                 if moveColor == myColor {
                                     // 自分の消費時間
                                     print("I used \(timeParsed) sec")
-                                    myRemainingTime -= timeParsed
+                                    myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime - timeParsed, decreasing: myRemainingTime.decreasing)
                                 } else {
                                     // 相手の消費時間
                                     print("Opponent used \(timeParsed) sec")
-                                    opponentRemainingTime -= timeParsed
+                                    opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime - timeParsed, decreasing: opponentRemainingTime.decreasing)
                                 }
                             }
                         }
                     } catch {
                         print("error on extracting time")
                     }
-                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
+                    moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
                     print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
                     
                     // 手番を反転させて、思考開始
@@ -836,10 +870,10 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         } else if command.starts(with: "%TORYO") {
             // プロトコル説明では、%TORYO,T10のように消費時間が来るとの説明があるが、floodgateの実装では消費時間情報はついていない。選手権サーバではついている。念のため先頭一致で処理する
             csaKifu?.appendMove(moveCSAWithTime: command)
-            moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
+            moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: DetailedMove.makeResign(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if command.starts(with: "%KACHI") {
             csaKifu?.appendMove(moveCSAWithTime: command)
-            moveHistory.append(MoveHistoryItem(detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
+            moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CENSORED"].contains(command) {
             // 対局終了
             dispatch(.endGameReceived(reason: command))
@@ -865,7 +899,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 self.dispatch(.csaConnected)
             case .waiting(let nwError):
                 // ネットワーク構成が変化するまで待つ=事実上の接続失敗
-                self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
+                self.callback.appendCommnicationHistory("C! Failed to connect to USI server: \(nwError)")
                 self.connection?.cancel()
             case .cancelled:
                 self.connection = nil
@@ -884,7 +918,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         connection?.receive(minimumIncompleteLength: 0, maximumLength: 65535, completion: {(data,context,flag,error) in
             if let error = error {
                 logger.error("receive error: \(String(describing: error))")
-                self.matchManager.displayMessage("CSA receive error \(error)")
+                self.callback.appendCommnicationHistory("C! \(error)")
                 // エラーはおそらく続行できないので接続切断
                 self.connection?.cancel()
             } else {
@@ -900,12 +934,12 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                             if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
                                 // 接続維持用の空行が受信される場合があるので無視
                                 if !commandStr.isEmpty {
-                                    self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
+                                    self.callback.appendCommnicationHistory("C< \(commandStr)")
                                     self.dispatch(.csaRecv(command: commandStr))
                                 }
                             } else {
                                 print("Cannot decode CSA data as utf-8")
-                                self.matchManager.displayMessage("Cannot decode CSA data as utf-8")
+                                self.callback.appendCommnicationHistory("C! Cannot decode CSA data as utf-8")
                             }
                             // Data()で囲わないと、次のfirstIndexで返る値が接続開始時からの全文字列に対するindexになる？バグか仕様か不明
                             self.recvBuffer = Data(self.recvBuffer[(lfPos+1)...])
@@ -917,7 +951,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 } else {
                     // コネクション切断で発生
                     logger.error("receive zero")
-                    self.matchManager.displayMessage("CSA disconnected")
+                    self.callback.appendCommnicationHistory("C! disconnected")
                     self.connection?.cancel()
                 }
             }
@@ -937,7 +971,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     private func sendCSA(message: String) {
         logger.log("send: \(message)")
         print("csasend \(message)")
-        matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: message))
+        callback.appendCommnicationHistory("C> \(message)")
         _send(messageWithNewline: message + "\n")
     }
     
@@ -945,7 +979,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         for m in messages {
             logger.log("send: \(m)")
             print("csasend \(m)")
-            matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: m))
+            callback.appendCommnicationHistory("C> \(m)")
         }
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())
     }

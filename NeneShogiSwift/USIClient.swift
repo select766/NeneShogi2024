@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 class USIClient {
-    let matchManager: MatchManager
+    let callback: USIStatusCallback
     let usiConfig: USIConfig
     var serverEndpoint: NWEndpoint
     var connection: NWConnection?
@@ -13,8 +13,8 @@ class USIClient {
     var position: Position // 手番把握のためにAIとは別に必要
     var moveHistory: [MoveHistoryItem] = []
     
-    init(matchManager: MatchManager, usiConfig: USIConfig) {
-        self.matchManager = matchManager // TODO: 循環参照回避
+    init(callback: USIStatusCallback, usiConfig: USIConfig) {
+        self.callback = callback
         self.usiConfig = usiConfig
         queue = DispatchQueue(label: "usiClient")
         self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.usiConfig.usiServerIpAddress), port: NWEndpoint.Port(rawValue: self.usiConfig.usiServerPort)!)
@@ -22,19 +22,18 @@ class USIClient {
     }
     
     func start() {
-        self.matchManager.displayMessage("connecting to USI server")
+        callback.appendCommnicationHistory("U! connecting to USI server")
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
             print("stateUpdateHandler", newState)
             switch newState {
             case .ready:
-                self.matchManager.displayMessage("connected to USI server")
+                self.callback.appendCommnicationHistory("U! connected to USI server")
                 self.startYane()
                 self.startRecv()
             case .waiting(let nwError):
                 // ネットワーク構成が変化するまで待つ=事実上の接続失敗
-                // TODO: 接続失敗時のアクション
-                self.matchManager.displayMessage("Failed to connect to USI server: \(nwError)")
+                self.callback.appendCommnicationHistory("U! Failed to connect to USI server: \(nwError)")
             default:
                 break
             }
@@ -55,7 +54,7 @@ class USIClient {
     func startRecv() {
         connection?.receive(minimumIncompleteLength: 0, maximumLength: 65535, completion: {(data,context,flag,error) in
             if let error = error {
-                self.matchManager.displayMessage("USI receive error \(error)")
+                self.callback.appendCommnicationHistory("U! USI receive error \(error)")
                 print("receive error", error)
             } else {
                 if let data = data {
@@ -68,11 +67,11 @@ class USIClient {
                                 lineEndPos -= 1
                             }
                             if let commandStr = String(data: self.recvBuffer[..<lineEndPos], encoding: .utf8) {
-                                self.matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .recv, message: commandStr))
+                                self.callback.appendCommnicationHistory("U< \(commandStr)")
                                 self.handleUSICommand(command: commandStr)
                             } else {
                                 print("Cannot decode USI data as utf-8")
-                                self.matchManager.displayMessage("Cannot decode USI data as utf-8")
+                                self.callback.appendCommnicationHistory("U! Cannot decode USI data as utf-8")
                             }
                             // Data()で囲わないと、次のfirstIndexで返る値が接続開始時からの全文字列に対するindexになる？バグか仕様か不明
                             self.recvBuffer = Data(self.recvBuffer[(lfPos+1)...])
@@ -83,7 +82,7 @@ class USIClient {
                     self.startRecv()
                 } else {
                     // コネクション切断で発生
-                    self.matchManager.displayMessage("USI disconnected")
+                    self.callback.appendCommnicationHistory("U! disconnected")
                 }
             }
         })
@@ -97,7 +96,6 @@ class USIClient {
     
     func handleUSICommandForDisplay(command: String) {
         // 画面表示用にUSI受信コマンドをパースする
-        self.matchManager.displayMessage("USI recv: '\(command)'")
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         if splits.count < 1 {
             return
@@ -127,15 +125,17 @@ class USIClient {
                 var mh: [MoveHistoryItem] = []
                 for move in position.moveStack {
                     let dm = positionForDetailedMove.makeDetailedMove(move: move)
-                    // 消費時間は含まれていない
-                    mh.append(MoveHistoryItem(detailedMove: dm, usedTime: nil, scoreCp: nil))
+                    let positionBeforeMove = positionForDetailedMove.copy()
                     positionForDetailedMove.doMove(move: move)
+                    let positionAfterMove = positionForDetailedMove.copy()
+                    // 消費時間は含まれていない
+                    mh.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: positionAfterMove, detailedMove: dm, usedTime: nil, scoreCp: nil))
                 }
                 moveHistory = mh
                 
                 let players: [String?] = position.sideToMove == PColor.BLACK ? ["my", "opponent"] : ["opponent", "my"]
                 
-                matchManager.updateMatchStatus(matchStatus: MatchStatus(gameState: .playing, players: forceArrayCopy(players), position: positionForDetailedMove.copy(), moveHistory: forceArrayCopy( moveHistory)))
+                callback.updateMatchStatus(players: forceArrayCopy(players), moveHistory: forceArrayCopy(moveHistory))
             }
             break
         case "go":
@@ -208,7 +208,7 @@ class USIClient {
         // サーバへのUSIメッセージ送信
         for line in messageWithNewline.components(separatedBy: "\n") {
             if line.count > 0 {
-                matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: line))
+                callback.appendCommnicationHistory("U> \(line)")
             }
         }
         connection?.send(content: messageWithNewline.data(using: .utf8)!, completion: .contentProcessed{ error in

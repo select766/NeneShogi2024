@@ -3,7 +3,12 @@ import SwiftUI
 struct BoardView: View {
     // Boardのwidth: gridSize * 12, height: gridSize * 10
     // iPhone 15 Pro: 852 x 393
-    let gridSize = CGFloat(32)
+    var maxSize: CGSize
+    
+    var gridSize: CGFloat {
+        return min(maxSize.height / 10.0, maxSize.width / 12.0) // 親ビューの 幅または高さを目一杯使う
+    }
+
     struct BoardViewPieceItem: Identifiable {
         let id: Int
         let gridSize: CGFloat
@@ -104,7 +109,10 @@ struct BoardView: View {
     }
     
     private func getBoardViewPieceList() -> [BoardViewPieceItem] {
-        let position = matchStatus.position
+        guard let lastItem = matchStatus.moveHistory.last else {
+            return []
+        }
+        let position = lastItem.positionAfterMove ?? lastItem.positionBeforeMove
         var pis: [BoardViewPieceItem] = []
         for sq in 0..<Square.SQ_NB {
             let piece = position.board[sq]
@@ -131,16 +139,8 @@ struct BoardView: View {
     }
 }
 
-struct BoardView_Previews: PreviewProvider {
-    static var sampleMatchStatus: MatchStatus {
-        get {
-            let position = Position()
-            position.setSFEN(sfen: "9/1+P7/2+P+P4l/5+P+R2/2K+S5/LPS6/2N1P1g+p+p/2GG1+s1+rk/5+s1b+p b G2LPb3n8p 1")
-            return MatchStatus(gameState: .playing, players: ["player1", "player2"], position: position, moveHistory: [MoveHistoryItem(detailedMove: DetailedMove(special: .Ordinary, moveFrom: Square(Square.SQ_NB), moveTo: Square.fromFileRank(file: 2, rank: 6), sideToMove: PColor.WHITE, moveFromPieceType: Piece.GOLD, moveToPieceType: Piece.GOLD, isPromote: false, isDrop: true), usedTime: 1.0, scoreCp: -300)])
-        }
-    }
-    
+struct BoardView_Previews: PreviewProvider {    
     static var previews: some View {
-        BoardView(matchStatus: sampleMatchStatus)
+        BoardView(maxSize: CGSize(width: 300.0, height: 300.0), matchStatus: getSampleMatchStatus())
     }
 }
