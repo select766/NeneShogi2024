@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ScoreBarTwoRowsView: View {
     var matchStatus: MatchStatus
+    var now: Date
     
     private func getBlackWinratePercent() -> Int {
         var lastScore = 0
@@ -22,6 +23,31 @@ struct ScoreBarTwoRowsView: View {
         let percent = Int(sigmoid * 100.0)
         return percent
     }
+    
+    private func timeToString(sec: Int) -> String {
+        return "\(String(format: "%02d", sec / 60)):\(String(format: "%02d", sec % 60))"
+    }
+    
+    func getPlayerInfo(index: Int, now: Date) -> String {
+        var s = ""
+        if index == 0 {
+            s += "▲"
+        } else {
+            s += "△"
+        }
+        s += "\(matchStatus.players[index] ?? "?")"
+        if matchStatus.csaGameState == .playing {
+            if let rt = matchStatus.remainingTimes[index] {
+                let ts = timeToString(sec: Int(rt.currentRemainingTime(now: now)))
+                if index == 0 {
+                    s = "\(s) 残\(ts)"
+                } else {
+                    s = "残\(ts) \(s)"
+                }
+            }
+        }
+        return s
+    }
 
     var body: some View {
         let blackWinratePercent = getBlackWinratePercent()
@@ -32,8 +58,8 @@ struct ScoreBarTwoRowsView: View {
             let gridSizeH = CGFloat(20.0)
             VStack(spacing: 0) {
                 HStack {
-                    Text("▲\(matchStatus.players[0] ?? "?")").foregroundStyle(.black).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .leading)
-                    Text("△\(matchStatus.players[1] ?? "?")").font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .trailing)
+                    Text(getPlayerInfo(index: 0, now: now)).foregroundStyle(.black).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .leading)
+                    Text(getPlayerInfo(index: 1, now: now)).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .trailing)
                 }
                 if case .playing = matchStatus.csaGameState {
                     HStack {
@@ -55,6 +81,6 @@ struct ScoreBarTwoRowsView: View {
 
 struct ScoreBarTwoRoesView_Previews: PreviewProvider {
     static var previews: some View {
-        ScoreBarTwoRowsView(matchStatus: getSampleMatchStatus())
+        ScoreBarTwoRowsView(matchStatus: getSampleMatchStatus(), now: Date(timeIntervalSince1970: 0))
     }
 }

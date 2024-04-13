@@ -16,6 +16,7 @@ struct MatchStaticView: View {
     var searchProgress: SearchProgress?
     var matchStatus: MatchStatus
     var communicationHistory: [String]
+    var now: Date
     @State var debugView = false
     
     var communicationHistoryForDisplay: [CommunicationHistoryForDisplayItem] {
@@ -51,7 +52,7 @@ struct MatchStaticView: View {
                                 
                             }.frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
-                            ScoreBarTwoRowsView(matchStatus: matchStatus)
+                            ScoreBarTwoRowsView(matchStatus: matchStatus, now: now)
                             ScoreChartView(matchStatus: matchStatus)
                             PVView(searchProgress: searchProgress)
                             
@@ -74,6 +75,7 @@ struct MatchStaticView: View {
 #Preview {
     MatchStaticView(
         matchStatus: getSampleMatchStatus(),
-        communicationHistory: []
+        communicationHistory: [],
+        now: Date.init(timeIntervalSince1970: 0.0)
     )
 }

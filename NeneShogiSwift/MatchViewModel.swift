@@ -23,10 +23,12 @@ struct RemainingTime {
     let remainingTimeAt: Date // 手番開始時刻
     let remainingTime: Double // 手番開始時の残り時間
     let decreasing: Bool // 手番の時true
-    
-    var currentRemainingTime: Double {
+
+    // 将棋所では、指し終わった時に指した側の残り時間表示にフィッシャーの加算がなされるので、見た目はこのソフトの方が持ち時間がフィッシャー分短くなる。
+
+    func currentRemainingTime(now: Date) -> Double {
         if decreasing {
-            return remainingTime - Date.now.timeIntervalSince(remainingTimeAt)
+            return remainingTime - now.timeIntervalSince(remainingTimeAt)
         } else {
             return remainingTime
         }
