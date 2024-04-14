@@ -20,4 +20,5 @@ setoption BookDepthLimit value 0
 setoption BookMoves value 32
 setoption IgnoreBookPly value true
 setoption name NetworkDelay2 value 2200
+setoption name MaxMovesToDraw value 320
 """.split(separator: "\n").map({String($0)})
