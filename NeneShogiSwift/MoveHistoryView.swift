@@ -61,6 +61,10 @@ struct MoveHistoryView: View {
                             ForEach(moveHistory) {moveHistoryItem in
                                 Text(moveHistoryItem.toPrintString()).foregroundStyle(.black).font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.5, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
                             }
+                            
+                            if let reason = matchStatus.lastGameResult {
+                                Text(reason).foregroundStyle(.black).font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.5, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
+                            }
                         }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
                             // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
                             value in
@@ -68,7 +72,7 @@ struct MoveHistoryView: View {
                         })
                     }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }.background(Color.white.edgesIgnoringSafeArea([]))
+            }.padding(.all, 1).background(Color.white.edgesIgnoringSafeArea([])).border(Color.black, width: 1)
         }
     }
 }

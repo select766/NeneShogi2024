@@ -11,13 +11,17 @@ struct PVView: View {
             HStack {
                 Text("評価値: \(searchProgress?.score?.description ?? "-")").foregroundStyle(.black)
                 Text("NPS: \(searchProgress?.nps?.description ?? "-")").foregroundStyle(.black)
+                Spacer()
             }
-            if let searchProgress = searchProgress {
-                Text(searchProgress.pv.map({dMove in dMove.toPrintString()}).joined(separator: " ")).foregroundStyle(.black)
-            } else {
-                Text("読み筋").foregroundStyle(.black)
+            HStack {
+                if let searchProgress = searchProgress {
+                    Text(searchProgress.pv.map({dMove in dMove.toPrintString()}).joined(separator: " ")).foregroundStyle(.black)
+                } else {
+                    Text("読み筋").foregroundStyle(.black)
+                }
+                Spacer()
             }
-        }
+        }.frame(maxWidth: .infinity).padding(.all, 1).background(Color.white.edgesIgnoringSafeArea([])).border(Color.black, width: 1)
     }
 }
 

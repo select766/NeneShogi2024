@@ -76,7 +76,6 @@ Start CSAで選手権サーバに接続する。サーバ側で手動でマッ�
 
 ```
 cd NeneShogiSwift
-gunzip -k DNNInputTestCase.txt.gz
 gunzip -k PositionTestCase.txt.gz
 ```
 

@@ -175,7 +175,7 @@ struct ConfigView: View {
                     Text("ねね将棋").padding()
                     VStack {
                         Text("CSA client mode")
-                        TextField("Config name", text: $csaConfigName).frame(width: 100.0, height: 20.0)
+                        TextField("Config name", text: $csaConfigName).frame(width: 200.0, height: 20.0)
                         Group {
                             HStack {
                                 Text("IP")
