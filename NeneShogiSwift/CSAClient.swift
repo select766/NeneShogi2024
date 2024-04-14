@@ -417,6 +417,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     var myScoreCp: Int? = nil
     var lastGameResult: String? = nil
     var _tmpGameSummary: [String: String] = [:] // Game_Summary受信中の情報を蓄積する
+    var _tmpAbnormalGameTerminationReason: String? = nil
     
     // 通信管理
     var connection: NWConnection?
@@ -733,6 +734,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         moves = []
         moveHistory = []
         position.setHirate()
+        _tmpAbnormalGameTerminationReason = nil
         lastGameResult = nil
         csaKifu = CSAKifu(players: players)
     }
@@ -832,10 +834,14 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: DetailedMove.makeWin(sideToMode: position.sideToMove), usedTime: nil, scoreCp: nil))
         } else if ["#WIN", "#LOSE", "#DRAW", "#CENSORED"].contains(command) {
             // 対局終了
-            dispatch(.endGameReceived(reason: command))
+            var endReason = command
+            if let _tmpAbnormalGameTerminationReason = _tmpAbnormalGameTerminationReason {
+                endReason = "\(endReason)(\(_tmpAbnormalGameTerminationReason)"
+            }
+            dispatch(.endGameReceived(reason: endReason))
         } else if ["#TIME_UP", "#SENNICHITE", "#OUTE_SENNICHITE", "#JISHOGI", "#MAX_MOVES", "#ILLEGAL_MOVE", "#ILLEGAL_ACTION"].contains(command) {
             // 時間切れや千日手等、勝敗が決する原因となる事象
-            // TODO 画面表示
+            _tmpAbnormalGameTerminationReason = command
         } else if command == "#CHUDAN" {
             // プロトコルによれば対局中断
             // 再開手順が規定されていないため、単に無視する。
