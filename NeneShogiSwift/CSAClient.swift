@@ -838,7 +838,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             // 対局終了
             var endReason = command
             if let _tmpAbnormalGameTerminationReason = _tmpAbnormalGameTerminationReason {
-                endReason = "\(endReason)(\(_tmpAbnormalGameTerminationReason)"
+                endReason = "\(endReason)(\(_tmpAbnormalGameTerminationReason))"
             }
             dispatch(.endGameReceived(reason: endReason))
         } else if ["#TIME_UP", "#SENNICHITE", "#OUTE_SENNICHITE", "#JISHOGI", "#MAX_MOVES", "#ILLEGAL_MOVE", "#ILLEGAL_ACTION"].contains(command) {
