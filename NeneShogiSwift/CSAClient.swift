@@ -631,7 +631,9 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 let moveMessage: String
                 if let score = score, csaConfig.sendScore {
                     // コメントに評価値を入れる拡張
-                    moveMessage = "\(bestMoveCSA),'* \(score)"
+                    // CSAプロトコルでは、常に先手の立場の符号で送る
+                    let scoreFromBlack = myColor == PColor.BLACK ? score : -score
+                    moveMessage = "\(bestMoveCSA),'* \(scoreFromBlack)"
                 } else {
                     moveMessage = bestMoveCSA
                 }
