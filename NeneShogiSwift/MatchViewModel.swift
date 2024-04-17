@@ -151,7 +151,7 @@ struct USISearchProgress {
                 tokens = []
             default:
                 // unknown
-                logger.warning("unknown usi info token \(subcmd)")
+                logger.warning("unknown usi info token \(subcmd, privacy: .public)")
                 tokens = []
             }
         }
