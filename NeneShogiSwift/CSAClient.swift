@@ -572,7 +572,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 sendCSA(message: "AGREE")
                 state = .waitingStart
             case .csaDisconnected:
-                state = .disconnected
+                // TODO: isreadyの最中にREJECTが来た場合の挙動が不定
+                state = .abortGame
             default:
                 // 待機中の切断やREJECTもありうる
                 unexpected(message)
@@ -594,7 +595,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                     unexpected(message)
                 }
             case .csaDisconnected:
-                state = .disconnected
+                // USIがgameIdle状態になっているので、gameoverを送る必要がある（そうしないと次のisreadyに反応できない）
+                state = .abortGame
             default:
                 unexpected(message)
             }
