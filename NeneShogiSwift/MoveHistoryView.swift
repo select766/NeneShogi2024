@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct MoveHistoryView: View {
+    let gridSize = CGFloat(32)
+
     struct MoveHistoryDisplayItem: Identifiable {
         let id: Int
         let tekazu: Int
@@ -49,13 +51,13 @@ struct MoveHistoryView: View {
     var body: some View {
         let moveHistory = toMoveHistory()
         VStack {
-            Text("指し手 消費時間/合計/評価値")
+            Text("指し手 消費時間/合計/評価値").font(.system(size: gridSize * 0.5))
             ScrollView(.vertical, showsIndicators: true) {
                 ScrollViewReader {
                     proxy in
                     VStack(alignment: .leading) {
                         ForEach(moveHistory) {moveHistoryItem in
-                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
+                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.25, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
                         }
                     }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
                         // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
@@ -64,7 +66,7 @@ struct MoveHistoryView: View {
                     })
                 }
                 
-            }.frame(maxWidth: .infinity, maxHeight: 240.0)
+            }.frame(maxWidth: .infinity, maxHeight: gridSize * 3.75)
         }.background(Color.white)
     }
 }

@@ -2,6 +2,8 @@ import SwiftUI
 
 
 struct PVView: View {
+    let gridSize = CGFloat(32)
+    
     struct PVLineItem: Identifiable {
         let id: Int
         let isBestRootMove: Bool
@@ -62,15 +64,15 @@ struct PVView: View {
 
     var body: some View {
         let pad: CGFloat = 2
-        let width: CGFloat = 1080 - 768 - 16 // 16は将棋盤との左右スペース
+        let width: CGFloat = gridSize * (16.875 - 12 - 0.25) // 0.25は将棋盤との左右スペース
         let contentWidth: CGFloat = width - pad * 2
         VStack(alignment: .center) {
-            Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: 20, weight: .medium)))
+            Text("ノード数: \(searchProgress.totalNodes), NPS: \(searchProgress.nps)").font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.3125, weight: .medium)))
             
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(pvsToString(pvs: searchProgress.pvs)) {
                     item in
-                    let height: CGFloat = item.isBestRootMove ? 30 : 20
+                    let height: CGFloat = item.isBestRootMove ? gridSize * 0.46875 : gridSize * 0.3125
                     ZStack(alignment: .topLeading) {
                         Rectangle().fill(item.color).frame(width: CGFloat(item.nodesRatio) * contentWidth, height: height)
                         HStack(alignment: .bottom) {
@@ -82,7 +84,7 @@ struct PVView: View {
             }
 
             Spacer()
-        }.padding(pad).background(Color.white).border(Color.gray, width: pad).frame(width: width, height: 320)
+        }.padding(pad).background(Color.white).border(Color.gray, width: pad).frame(width: width, height: gridSize * 5)
     }
 }
 

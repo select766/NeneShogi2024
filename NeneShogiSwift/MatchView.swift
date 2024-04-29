@@ -21,7 +21,7 @@ struct MatchView: View {
     var body: some View {
         Group {
             if let matchStatus = matchStatus {
-                MatchStaticView(matchStatus: matchStatus, communicationHistory: communicationHistory, commuicationHistoryDisplay: commuicationHistoryDisplay)
+                MatchStaticView(latestMessage: latestMessage, searchProgress: searchProgress, matchStatus: matchStatus, communicationHistory: communicationHistory, commuicationHistoryDisplay: commuicationHistoryDisplay)
             } else {
                 Text("Waiting for match to start")
             }
