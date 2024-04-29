@@ -12,7 +12,6 @@
 		7410BC8D2BB965F100E05DF0 /* YaneuraOuiOSSPM in Frameworks */ = {isa = PBXBuildFile; productRef = 7410BC8C2BB965F100E05DF0 /* YaneuraOuiOSSPM */; };
 		7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */; };
 		7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */; };
-		AA054851281D41080032AF12 /* BookMaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA054850281D41080032AF12 /* BookMaker.swift */; };
 		AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00927BA72BE0075371D /* MatchManager.swift */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
@@ -31,18 +30,11 @@
 		AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */; };
 		AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013C27C1D6BA00BB71E0 /* Position.swift */; };
 		AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */; };
-		AACE1F7D27EB1C750099667A /* MCTSPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F7C27EB1C750099667A /* MCTSPlayer.swift */; };
-		AACE1F7F27EB1C940099667A /* UCTNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F7E27EB1C940099667A /* UCTNode.swift */; };
-		AACE1F8127EB240E0099667A /* RandomPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8027EB240E0099667A /* RandomPlayer.swift */; };
-		AACE1F8327EB244A0099667A /* PlayerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8227EB244A0099667A /* PlayerProtocol.swift */; };
-		AACE1F8527EB26C50099667A /* PolicyPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8427EB26C50099667A /* PolicyPlayer.swift */; };
-		AACE1F8727EB2D9C0099667A /* NNPlayerBase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */; };
 		AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC86E280C18B300517C11 /* SearchProgress.swift */; };
 		AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC870280C192F00517C11 /* DetailedMove.swift */; };
 		AACEC873281394AF00517C11 /* CSAConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC872281394AF00517C11 /* CSAConfig.swift */; };
 		AACEC8752813D72000517C11 /* USIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC8742813D72000517C11 /* USIConfig.swift */; };
 		AACEC8772813DC1900517C11 /* MatchStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC8762813DC1900517C11 /* MatchStatus.swift */; };
-		AACEC87928181D0700517C11 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC87828181D0600517C11 /* Book.swift */; };
 		AACEC87B281BD82900517C11 /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC87A281BD82800517C11 /* BoardView.swift */; };
 		AACEC87D281CC6B600517C11 /* ScoreBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC87C281CC6B500517C11 /* ScoreBarView.swift */; };
 		AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC87E281CDE8B00517C11 /* MoveHistoryView.swift */; };
@@ -51,9 +43,7 @@
 		AACEC885281D369200517C11 /* CSAKifu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACEC884281D369200517C11 /* CSAKifu.swift */; };
 		AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E6F27EEB607007BF351 /* SearchBench.swift */; };
 		AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7127EECB83007BF351 /* CSAClient.swift */; };
-		AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */; };
 		AAFFE6EA27CB24240044CA38 /* DNNInputTestCase.txt in Resources */ = {isa = PBXBuildFile; fileRef = AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */; };
-		AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,7 +69,6 @@
 		7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet.mlmodel; sourceTree = "<group>"; };
 		7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineCommunicator.swift; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		AA054850281D41080032AF12 /* BookMaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMaker.swift; sourceTree = "<group>"; };
 		AA22E00927BA72BE0075371D /* MatchManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchManager.swift; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,18 +91,11 @@
 		AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoMoveInfo.swift; sourceTree = "<group>"; };
 		AA9C013C27C1D6BA00BB71E0 /* Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Position.swift; sourceTree = "<group>"; };
 		AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionTestCase.swift; sourceTree = "<group>"; };
-		AACE1F7C27EB1C750099667A /* MCTSPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCTSPlayer.swift; sourceTree = "<group>"; };
-		AACE1F7E27EB1C940099667A /* UCTNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UCTNode.swift; sourceTree = "<group>"; };
-		AACE1F8027EB240E0099667A /* RandomPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomPlayer.swift; sourceTree = "<group>"; };
-		AACE1F8227EB244A0099667A /* PlayerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProtocol.swift; sourceTree = "<group>"; };
-		AACE1F8427EB26C50099667A /* PolicyPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PolicyPlayer.swift; sourceTree = "<group>"; };
-		AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NNPlayerBase.swift; sourceTree = "<group>"; };
 		AACEC86E280C18B300517C11 /* SearchProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchProgress.swift; sourceTree = "<group>"; };
 		AACEC870280C192F00517C11 /* DetailedMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailedMove.swift; sourceTree = "<group>"; };
 		AACEC872281394AF00517C11 /* CSAConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAConfig.swift; sourceTree = "<group>"; };
 		AACEC8742813D72000517C11 /* USIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIConfig.swift; sourceTree = "<group>"; };
 		AACEC8762813DC1900517C11 /* MatchStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchStatus.swift; sourceTree = "<group>"; };
-		AACEC87828181D0600517C11 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		AACEC87A281BD82800517C11 /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		AACEC87C281CC6B500517C11 /* ScoreBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBarView.swift; sourceTree = "<group>"; };
 		AACEC87E281CDE8B00517C11 /* MoveHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoveHistoryView.swift; sourceTree = "<group>"; };
@@ -122,9 +104,7 @@
 		AACEC884281D369200517C11 /* CSAKifu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAKifu.swift; sourceTree = "<group>"; };
 		AAF48E6F27EEB607007BF351 /* SearchBench.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchBench.swift; sourceTree = "<group>"; };
 		AAF48E7127EECB83007BF351 /* CSAClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSAClient.swift; sourceTree = "<group>"; };
-		AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet15x224SwishBatch.mlmodel; sourceTree = "<group>"; };
 		AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = DNNInputTestCase.txt; sourceTree = "<group>"; };
-		AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet10SwishBatch.mlmodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,21 +173,11 @@
 				AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */,
 				AA9C013C27C1D6BA00BB71E0 /* Position.swift */,
 				7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */,
-				AAF48E7727F5B0CA007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel */,
-				AAFFE6EB27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel */,
 				AA9C013427C1C88600BB71E0 /* Square.swift */,
 				AA9C013627C1CCB800BB71E0 /* Color.swift */,
 				AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */,
 				AAFFE6E927CB24240044CA38 /* DNNInputTestCase.txt */,
 				AA995E6627CB1DE700D1B5C2 /* DNNInputTestCase.swift */,
-				AACE1F7C27EB1C750099667A /* MCTSPlayer.swift */,
-				AACEC87828181D0600517C11 /* Book.swift */,
-				AA054850281D41080032AF12 /* BookMaker.swift */,
-				AACE1F8027EB240E0099667A /* RandomPlayer.swift */,
-				AACE1F8427EB26C50099667A /* PolicyPlayer.swift */,
-				AACE1F8627EB2D9C0099667A /* NNPlayerBase.swift */,
-				AACE1F8227EB244A0099667A /* PlayerProtocol.swift */,
-				AACE1F7E27EB1C940099667A /* UCTNode.swift */,
 				AAF48E6F27EEB607007BF351 /* SearchBench.swift */,
 				AAF48E7127EECB83007BF351 /* CSAClient.swift */,
 				AACEC884281D369200517C11 /* CSAKifu.swift */,
@@ -402,29 +372,19 @@
 				AACEC881281CE5AD00517C11 /* PVView.swift in Sources */,
 				AAF48E7227EECB83007BF351 /* CSAClient.swift in Sources */,
 				AACEC871280C192F00517C11 /* DetailedMove.swift in Sources */,
-				AACE1F8527EB26C50099667A /* PolicyPlayer.swift in Sources */,
 				AA9C013F27CA028900BB71E0 /* PositionTestCase.swift in Sources */,
 				AACEC8772813DC1900517C11 /* MatchStatus.swift in Sources */,
 				AACEC87D281CC6B600517C11 /* ScoreBarView.swift in Sources */,
 				AACEC8752813D72000517C11 /* USIConfig.swift in Sources */,
 				AA22E00A27BA72BE0075371D /* MatchManager.swift in Sources */,
 				AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */,
-				AA054851281D41080032AF12 /* BookMaker.swift in Sources */,
 				7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */,
-				AAFFE6EC27CCF1180044CA38 /* DlShogiResnet10SwishBatch.mlmodel in Sources */,
 				7410BC882BB9072900E05DF0 /* MatchView.swift in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
-				AACEC87928181D0700517C11 /* Book.swift in Sources */,
 				AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */,
-				AACE1F8127EB240E0099667A /* RandomPlayer.swift in Sources */,
-				AACE1F7D27EB1C750099667A /* MCTSPlayer.swift in Sources */,
-				AACE1F8727EB2D9C0099667A /* NNPlayerBase.swift in Sources */,
-				AACE1F8327EB244A0099667A /* PlayerProtocol.swift in Sources */,
-				AAF48E7827F5B0CB007BF351 /* DlShogiResnet15x224SwishBatch.mlmodel in Sources */,
 				AA9C013D27C1D6BA00BB71E0 /* Position.swift in Sources */,
 				7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */,
 				AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */,
-				AACE1F7F27EB1C940099667A /* UCTNode.swift in Sources */,
 				AACEC873281394AF00517C11 /* CSAConfig.swift in Sources */,
 				AACEC86F280C18B300517C11 /* SearchProgress.swift in Sources */,
 			);

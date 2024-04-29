@@ -4,6 +4,13 @@ import os
 
 private let logger = Logger(subsystem: "jp.outlook.select766.NeneShogiSwift", category: "csa")
 
+struct ThinkingTime {
+    let ponder: Bool
+    let remaining: Double
+    let byoyomi: Double
+    let fisher: Double
+}
+
 class CSAClient {
     let queue: DispatchQueue
     let usiActor: USIActor
