@@ -11,6 +11,12 @@ struct ThinkingTime {
     let fisher: Double
 }
 
+struct CSATimeConfig {
+    let totalTime: Double
+    let byoyomi: Double
+    let increment: Double
+}
+
 class CSAClient {
     let queue: DispatchQueue
     let usiActor: USIActor
@@ -175,7 +181,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                 } else if commandType == "usiok" {
                     // launch ok
                     // 対局ごとのsetoptionはうまくいくか不明なので、usiokに対応してここで行う(isreadyの直前ではなく)。
-                    var options = ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8", "setoption USI_Ponder value true", "setoption Stochastic_Ponder value true"]
+                    let options = ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8", "setoption USI_Ponder value true", "setoption Stochastic_Ponder value true"]
                     for option in options {
                         yaneSend(option)
                     }
@@ -379,8 +385,11 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     var moves: [Move]
     var position: Position
     var myRemainingTime: Double = 0.0
+    var opponentRemainingTime: Double = 0.0
     var moveHistory: [MoveHistoryItem] = []
     var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
+    var csaTimeConfig: CSATimeConfig = CSATimeConfig(totalTime: 0.0, byoyomi: 10.0, increment: 0.0)
+    var _tmpGameSummary: [String: String] = [:] // Game_Summary受信中の情報を蓄積する
     
     // 通信管理
     var connection: NWConnection?
@@ -412,10 +421,11 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             break
         case .myTurn:
             // 自分の手番になった
-            myRemainingTime += csaConfig.timeIncrementSec
+            myRemainingTime += csaTimeConfig.increment
             runGo(ponder: false)
         case .opponentTurn:
             // 相手の手番
+            opponentRemainingTime += csaTimeConfig.increment
             if csaConfig.ponder {
                 runGo(ponder: true)
             }
@@ -428,9 +438,13 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         }
     }
     
+    private func secToMsStr(_ second: Double) -> String {
+        return String(Int((second * 1000).rounded(.towardZero)))
+    }
+    
     private func runGo(ponder: Bool) {
         // remaining timeに今回手番側回ってきたことによる加算時間は含まない
-        let thinkingTime = ThinkingTime(ponder: ponder, remaining: myRemainingTime - csaConfig.timeIncrementSec, byoyomi: 0.0, fisher: csaConfig.timeIncrementSec)
+        let thinkingTime = ThinkingTime(ponder: ponder, remaining: max(myRemainingTime - csaTimeConfig.increment, 0.0), byoyomi: csaTimeConfig.byoyomi, fisher: csaTimeConfig.increment)
         
         var positionCommand = "position startpos"
         if moves.count > 0 {
@@ -438,25 +452,24 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                 move.toUSIString()
             }).joined(separator: " ")
         }
-        
-        // TODO: 持ち時間の処理がこれでいいか確認する (USIでは、btimeとbincを足した時間が今回の思考時間)
+
         var goCommand = ""
         if thinkingTime.ponder {
             goCommand = "go ponder btime 1000 wtime 1000 binc 1000"
         } else {
             if myColor == .BLACK {
-                goCommand = "go btime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) wtime 1000 "
+                goCommand = "go btime \(secToMsStr(thinkingTime.remaining)) wtime 1000 "
                 if thinkingTime.fisher > 0.0 {
-                    goCommand += "binc \(Int((thinkingTime.fisher * 1000).rounded(.towardZero))) winc 1000"
+                    goCommand += "binc \(secToMsStr(thinkingTime.fisher)) winc 1000"
                 } else {
-                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                    goCommand += "byoyomi \(secToMsStr(thinkingTime.byoyomi))"
                 }
             } else {
-                goCommand = "go btime 1000 wtime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) "
+                goCommand = "go btime 1000 wtime \(secToMsStr(thinkingTime.remaining)) "
                 if thinkingTime.fisher > 0.0 {
-                    goCommand += "binc 1000 wing \(Int((thinkingTime.fisher * 1000).rounded(.towardZero)))"
+                    goCommand += "binc 1000 winc \(secToMsStr(thinkingTime.fisher))"
                 } else {
-                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                    goCommand += "byoyomi \(secToMsStr(thinkingTime.byoyomi))"
                 }
             }
         }
@@ -579,8 +592,8 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     
     private func initPosition() {
         // 対局開始時に呼び出し、局面情報、持ち時間を初期化する
-        // TODO 持ち時間はサーバから受信したものを使う
-        myRemainingTime = csaConfig.timeTotalSec
+        myRemainingTime = csaTimeConfig.totalTime
+        opponentRemainingTime = csaTimeConfig.totalTime
         moves = []
         moveHistory = []
         position.setHirate()
@@ -588,26 +601,35 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     private func _handleCSACommandWaiting(command: String) {
-        if command.starts(with: "Your_Turn") {
-            if command == "Your_Turn:+" {
+        if command.starts(with: "BEGIN Game_Summary") {
+            _tmpGameSummary = [:]
+        }
+        let items = command.split(separator: ":", maxSplits: 2)
+        _tmpGameSummary[String(items[0])] = items.count > 1 ? String(items[1]) : ""
+        
+        if command.starts(with: "END Game_Summary") {
+            players[0] = _tmpGameSummary["Name+"]
+            players[1] = _tmpGameSummary["Name-"]
+            
+            switch _tmpGameSummary["Your_Turn"] {
+            case "+":
                 myColor = PColor.BLACK
-            } else if command == "Your_Turn:-" {
+            case "-":
                 myColor = PColor.WHITE
-            } else {
-                fatalError("Unknown turn")
+            default:
+                logger.error("Your_Turn is unspecified")
+                myColor = PColor.BLACK
             }
-        } else if command.starts(with: "Name+:") {
-            players[0] = String(command.dropFirst(6))
-        } else if command.starts(with: "Name-:") {
-            players[1] = String(command.dropFirst(6))
-        } else if command.starts(with: "END Game_Summary") {
+            
+            // FIXME 先手後手で異なる持ち時間には非対応
+            if _tmpGameSummary["Time_Unit"] != "1sec" {
+                logger.error("Time_Unit!=1sec")
+            }
+            // 持ち時間情報がないときは、安全側に倒して、秒読み10秒として扱う
+            csaTimeConfig = CSATimeConfig(totalTime: Double(_tmpGameSummary["Total_Time"] ?? "0") ?? 0.0, byoyomi: Double(_tmpGameSummary["Byoyomi"] ?? "10") ?? 10.0, increment: Double(_tmpGameSummary["Increment"] ?? "0") ?? 0.0)
+            
             dispatch(.gameSummaryReceived)
         }
-        // TODO 時刻の受信
-        // dispatch csaRecv(command: "Time_Unit:1sec")
-        //        dispatch csaRecv(command: "Total_Time:30")
-        //        dispatch csaRecv(command: "Byoyomi:0")
-        //        dispatch csaRecv(command: "Increment:1")
         // TODO 指定局面戦への対応ではBEGIN Positionの中の指し手を読む必要あり
     }
     
@@ -638,6 +660,10 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                     // 自分の消費時間
                                     print("I used \(timeParsed) sec")
                                     myRemainingTime -= timeParsed
+                                } else {
+                                    // 相手の消費時間
+                                    print("Opponent used \(timeParsed) sec")
+                                    opponentRemainingTime -= timeParsed
                                 }
                             }
                         }

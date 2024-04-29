@@ -52,8 +52,6 @@ struct ContentView: View {
     @State var csaLoginName: String
     @State var csaLoginPassword: String
     @State var csaPonder: Bool
-    @State var csaTimeTotalSec: String
-    @State var csaTimeIncrementSec: String
     @State var csaShowLoginPassword: Bool = false
     @State var matchRunning: Bool = false
     @State var serverType: String = "USI"
@@ -76,8 +74,6 @@ struct ContentView: View {
             csaLoginName = lastUsedConfig.loginName
             csaLoginPassword = lastUsedConfig.loginPassword
             csaPonder = lastUsedConfig.ponder
-            csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
-            csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
         } else {
             csaConfigSelected = ""
             csaServerIpAddress = "127.0.0.1"
@@ -86,8 +82,6 @@ struct ContentView: View {
             csaLoginName = "nene"
             csaLoginPassword = "test-300-10F"
             csaPonder = true
-            csaTimeTotalSec = "300"
-            csaTimeIncrementSec = "10"
         }
     }
     
@@ -170,7 +164,7 @@ struct ContentView: View {
     }
     
     func formToCSAConfig() -> CSAConfig {
-        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, timeTotalSec: Double(csaTimeTotalSec) ?? 300.0, timeIncrementSec: Double(csaTimeIncrementSec) ?? 10.0)
+        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder)
     }
     
     func onStartCSAClick() {
@@ -254,14 +248,6 @@ struct ContentView: View {
                                 HStack {
                                     Toggle("Ponder", isOn: $csaPonder).frame(width: 200.0, height: 20.0)
                                 }
-                                HStack {
-                                    Text("Total time")
-                                    TextField("", text: $csaTimeTotalSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
-                                }
-                                HStack {
-                                    Text("Increment time")
-                                    TextField("", text: $csaTimeIncrementSec).keyboardType(.decimalPad).disableAutocorrection(true).frame(width: 100.0, height: 20.0)
-                                }
                             }
                             HStack {
                                 Button(action: onSaveCSAConfigClick) {
@@ -288,8 +274,6 @@ struct ContentView: View {
                                     csaLoginName = lastUsedConfig.loginName
                                     csaLoginPassword = lastUsedConfig.loginPassword
                                     csaPonder = lastUsedConfig.ponder
-                                    csaTimeTotalSec = String(lastUsedConfig.timeTotalSec)
-                                    csaTimeIncrementSec = String(lastUsedConfig.timeIncrementSec)
                                 }
                             }
                         }.padding()
