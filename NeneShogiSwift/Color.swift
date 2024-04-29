@@ -1,4 +1,4 @@
-struct PColor: Equatable {
+struct PColor: Equatable, CustomStringConvertible {
     let color: Int
     init(_ color: Int) {
 #if DEBUG
@@ -13,5 +13,10 @@ struct PColor: Equatable {
     static let COLOR_NB = 2
     func invert() -> PColor {
         return PColor(1 - color)
+    }
+    
+    /// 黒（先手）="▲", 白（後手）= "△"
+    var description: String {
+        return color == 0 ? "▲" : "△"
     }
 }

@@ -6,8 +6,6 @@ struct CSAConfig: Codable {
     var loginName: String
     var loginPassword: String
     var ponder: Bool
-    // 開始時の持ち時間
-    var timeTotalSec: Double
-    // 手番が来た時の加算時間（フィッシャー）※秒読み未実装
-    var timeIncrementSec: Double
+    var sendScore: Bool // 評価値送信有効
+    var usiOptions: [String] // USIエンジンに送るsetoptionコマンド
 }

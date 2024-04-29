@@ -54,11 +54,11 @@ P9+KY+KE+GI+KI+OU+KI+GI+KE+KY
         do {
             try body.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
-            loggerForCSAKifu.error("String.write failed \(String(describing: error))")
+            loggerForCSAKifu.error("String.write failed \(String(describing: error), privacy: .public)")
             return false
         }
         
-        loggerForCSAKifu.info("Written kifu to \(self.fileName)")
+        loggerForCSAKifu.notice("Written kifu to \(self.fileName, privacy: .public)")
         return true
     }
 }

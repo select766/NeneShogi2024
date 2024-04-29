@@ -1,0 +1,15 @@
+{
+  "originHash" : "9304655665875e74c9f74631c24ba1e7495cd0d69dc906919d105e4f94f2033b",
+  "pins" : [
+    {
+      "identity" : "fukauraouiosspm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/select766/FukauraOuiOSSPM",
+      "state" : {
+        "revision" : "2a0334bdc346174e272cdcdc31bfc2e587e7d082",
+        "version" : "11.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
