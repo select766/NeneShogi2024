@@ -43,14 +43,14 @@ struct MatchStaticView: View {
                                     proxy in
                                     VStack(alignment: .leading) {
                                         ForEach(communicationHistoryForDisplay) {cItem in
-                                            Text(cItem.message).id(cItem.id)
+                                            Text(cItem.message).id(cItem.id).foregroundStyle(Color.black)
                                         }
                                     }.onChange(of: (self.communicationHistoryForDisplay.last?.id ?? 0), perform: {
                                         value in proxy.scrollTo(value, anchor: .bottom)
                                     })
                                 }
                                 
-                            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.white)
                         } else {
                             ScoreBarTwoRowsView(matchStatus: matchStatus, now: now)
                             ScoreChartView(matchStatus: matchStatus)
