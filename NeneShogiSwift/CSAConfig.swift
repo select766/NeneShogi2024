@@ -7,4 +7,5 @@ struct CSAConfig: Codable {
     var loginPassword: String
     var ponder: Bool
     var sendScore: Bool // 評価値送信有効
+    var usiOptions: [String] // USIエンジンに送るsetoptionコマンド
 }

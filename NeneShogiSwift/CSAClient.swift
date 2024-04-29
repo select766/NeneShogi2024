@@ -24,7 +24,7 @@ class CSAClient {
     
     init(callback: CSAStatusCallback, csaConfig: CSAConfig) {
         queue = DispatchQueue(label: "csaClient")
-        usiActor = USIActor(queue: queue, callback: callback)
+        usiActor = USIActor(queue: queue, csaConfig: csaConfig, callback: callback)
         csaActor = CSAActor(queue: queue, csaConfig: csaConfig, callback: callback)
     }
     
@@ -141,12 +141,14 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     
     let callback: CSAStatusCallback
+    let csaConfig: CSAConfig
     var positionForGo: Position? = nil
     var pendingMessageOnPonder: USIActorMessage? = nil
     var pvScore: Int? = nil
     var pvUSI: [String]? = nil
     
-    init(queue: DispatchQueue, callback: CSAStatusCallback) {
+    init(queue: DispatchQueue, csaConfig: CSAConfig, callback: CSAStatusCallback) {
+        self.csaConfig = csaConfig
         self.callback = callback
         super.init(queue: queue, initialState: .beforeLaunch)
     }
@@ -189,8 +191,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                 } else if commandType == "usiok" {
                     // launch ok
                     // 対局ごとのsetoptionはうまくいくか不明なので、usiokに対応してここで行う(isreadyの直前ではなく)。
-                    let options = ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8", "setoption USI_Ponder value true", "setoption Stochastic_Ponder value true"]
-                    for option in options {
+                    for option in csaConfig.usiOptions {
                         yaneSend(option)
                     }
                     emit(.launchCompleted)

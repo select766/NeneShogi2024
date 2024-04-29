@@ -137,7 +137,7 @@ struct ConfigView: View {
     }
     
     func formToCSAConfig() -> CSAConfig {
-        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, sendScore: csaSendScore)
+        CSAConfig(csaServerIpAddress: csaServerIpAddress, csaServerPort: UInt16(csaServerPort) ?? 4081, reconnect: csaReconnect, loginName: csaLoginName, loginPassword: csaLoginPassword, ponder: csaPonder, sendScore: csaSendScore, usiOptions: defaultUSIOptions)
     }
     
     func onStartCSAClick() {
