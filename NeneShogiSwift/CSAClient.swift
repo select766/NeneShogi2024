@@ -64,7 +64,7 @@ class Actor<T,U: Equatable,V> {
     
     func dispatch(_ message: T) -> Void {
         queue.async {
-            logger.debug("dispatch \(type(of: message)) \(String(describing: message), privacy: .public)")
+            logger.notice("dispatch \(type(of: message)) \(String(describing: message), privacy: .public)")
             self._dispatch(message: message)
         }
     }
@@ -154,7 +154,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     }
     
     override func stateChanged(newState: USIActorState, lastState: USIActorState) {
-        logger.debug("usi state: \(String(describing: newState)) <- \(String(describing: lastState))")
+        logger.notice("usi state: \(String(describing: newState)) <- \(String(describing: lastState))")
         switch newState {
         case .gameGoing:
             pvScore = nil
@@ -338,7 +338,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
             // gameoverを送ったタイミングにより、bestmoveが来たりこなかったりするので少し待つ
             switch message {
             case let .usiRecv(commandType: commandType, commandArg: _):
-                logger.info("discarding usi message after gameover: \(commandType)")
+                logger.notice("discarding usi message after gameover: \(commandType)")
             case .endGameWaitEnd:
                 state = .waitingGame
             default:
@@ -350,7 +350,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     private func yaneRecv(command: String) -> Void {
         callback.appendCommnicationHistory("U< \(command)")
-        logger.debug("U< \(command)")
+        logger.notice("U< \(command)")
         // やねうら王からメッセージを受信した（queueのスレッドで呼ばれる）
         let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         if splits.count < 1 {
@@ -363,7 +363,7 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     private func yaneSend(_ commandWithoutNewLine: String) -> Void {
         callback.appendCommnicationHistory("U> \(commandWithoutNewLine)")
-        logger.debug("U> \(commandWithoutNewLine)")
+        logger.notice("U> \(commandWithoutNewLine)")
         sendToYaneuraou(messageWithoutNewLine: commandWithoutNewLine)
     }
 }
@@ -434,7 +434,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     override func stateChanged(newState: CSAActorState, lastState: CSAActorState) -> Void {
-        logger.debug("csa state: \(String(describing: newState)) <- \(String(describing: lastState))")
+        logger.notice("csa state: \(String(describing: newState)) <- \(String(describing: lastState))")
         switch newState {
         case .noConnection:
             break
@@ -776,7 +776,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             csaKifu?.appendMove(moveCSAWithTime: command)
             let moveColor = command.starts(with: "+") ? PColor.BLACK : PColor.WHITE
             if let move = position.parseCSAMove(csaMove: command) {
-                logger.info("parsed move: \(move.toUSIString())")
+                logger.notice("parsed move: \(move.toUSIString())")
                 let detail = position.makeDetailedMove(move: move)
                 if move.isTerminal {
                     moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: detail, usedTime: nil, scoreCp: nil))
@@ -796,11 +796,11 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                                 usedTime = timeParsed
                                 if moveColor == myColor {
                                     // 自分の消費時間
-                                    logger.info("I used \(timeParsed) sec")
+                                    logger.notice("I used \(timeParsed) sec")
                                     myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime - timeParsed, decreasing: myRemainingTime.decreasing)
                                 } else {
                                     // 相手の消費時間
-                                    logger.info("Opponent used \(timeParsed) sec")
+                                    logger.notice("Opponent used \(timeParsed) sec")
                                     opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime - timeParsed, decreasing: opponentRemainingTime.decreasing)
                                 }
                             }
@@ -848,7 +848,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         recvBuffer = Data()
         connection = NWConnection(to: serverEndpoint, using: .tcp)
         connection?.stateUpdateHandler = {(newState) in
-            logger.debug("stateUpdateHandler: \(String(describing: newState))")
+            logger.notice("stateUpdateHandler: \(String(describing: newState))")
             switch newState {
             case .ready:
                 self.dispatch(.csaConnected)
@@ -923,14 +923,14 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     private func sendCSA(message: String) {
-        logger.debug("C> \(message)")
+        logger.notice("C> \(message)")
         callback.appendCommnicationHistory("C> \(message)")
         _send(messageWithNewline: message + "\n")
     }
     
     private func sendCSA(messages: [String]) {
         for m in messages {
-            logger.debug("C> \(m)")
+            logger.notice("C> \(m)")
             callback.appendCommnicationHistory("C> \(m)")
         }
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())
@@ -943,7 +943,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     private func keepAlive() {
         // TCP接続維持のために、無送信状態が40秒続いたら空行を送る(30秒未満で送ると反則)
         if lastSendTime.timeIntervalSinceNow < -40.0 {
-            logger.debug("keepalive at \(Date())")
+            logger.notice("keepalive at \(Date())")
             _send(messageWithNewline: "\n")
         }
         setKeepalive()
