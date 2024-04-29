@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MatchView: View {
     @ObservedObject var match: MatchViewModel
+    @State var now = Date.now
+    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     let engineStartInfo: EngineStartInfo
     
     init(engineStartInfo: EngineStartInfo) {
@@ -18,8 +20,10 @@ struct MatchView: View {
 
     var body: some View {
         Group {
-            MatchStaticView(searchProgress: match.searchProgress, matchStatus: match.matchStatus, communicationHistory: match.communicationHistory)
-        }.onAppear {
+            MatchStaticView(searchProgress: match.searchProgress, matchStatus: match.matchStatus, communicationHistory: match.communicationHistory, now: now)
+        }.onReceive(timer, perform: {_ in
+            self.now = Date.now
+        }).onAppear {
             // スリープさせない
             UIApplication.shared.isIdleTimerDisabled = true
             start()
