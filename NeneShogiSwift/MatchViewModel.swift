@@ -39,6 +39,121 @@ struct RemainingTime {
     }
 }
 
+
+struct USISearchProgress {
+    // infoコマンドのパース結果
+    let depth: Int?, selDepth: Int?, time: Double?, nodes: Int?, pvUSI: [String]?, multiPV: Int?, score: Int?, currMoveUSI: String?, hashFull: Int?, nps: Int?, string: String?
+    
+    static func parseGoInfo(commandArg: String) -> USISearchProgress {
+        // commandArg: "info depth 1..." or "depth 1..." both ok
+        var score: Int? = nil
+        var pvUSI: [String]? = nil
+        var tokens: [String] = commandArg.split(separator: " ").map{s in String(s)}
+        var depth: Int? = nil
+        var selDepth: Int? = nil
+        var time: Double? = nil
+        var nodes: Int? = nil
+        var multiPV: Int? = nil
+        var currMoveUSI: String? = nil
+        var hashFull: Int? = nil
+        var nps: Int? = nil
+        var string: String? = nil
+        while tokens.count > 0 {
+            let subcmd = tokens.removeFirst()
+            switch subcmd {
+            case "info":
+                break
+            case "depth":
+                if tokens.isEmpty {
+                    break
+                }
+                depth = Int(tokens.removeFirst())
+            case "seldepth":
+                if tokens.isEmpty {
+                    break
+                }
+                selDepth = Int(tokens.removeFirst())
+            case "time":
+                if tokens.isEmpty {
+                    break
+                }
+                if let timeInt = Int(tokens.removeFirst()) {
+                    time = Double(timeInt) / 1000.0
+                }
+            case "nodes":
+                if tokens.isEmpty {
+                    break
+                }
+                nodes = Int(tokens.removeFirst())
+            case "pv":
+                pvUSI = tokens
+                tokens = []
+            case "multipv":
+                if tokens.isEmpty {
+                    break
+                }
+                // パースはするものの、multipvを想定した表示機能は未実装
+                multiPV = Int(tokens.removeFirst())
+            case "score":
+                let cpOrMate = tokens.removeFirst()
+                let value = tokens.removeFirst()
+                if tokens.count > 0 {
+                    // lowerbound or upperbound
+                    if tokens.first == "lowerbound" {
+                        tokens.removeFirst()
+                    } else if tokens.first == "upperbound" {
+                        tokens.removeFirst()
+                    }
+                }
+                if cpOrMate == "cp" {
+                    score = Int(value)
+                } else if cpOrMate == "mate" {
+                    let mateBase = 32000
+                    if let parsedValue = Int(value) {
+                        if parsedValue > 0 {
+                            // 手番側が parsedValue 手で勝つ
+                            score = mateBase - parsedValue
+                        } else {
+                            // 相手側が -parsedValue 手で勝つ
+                            score = -mateBase - parsedValue
+                        }
+                    } else {
+                        if value == "+" {
+                            score = mateBase
+                        } else if value == "-" {
+                            score = -mateBase
+                        }
+                    }
+                }
+            case "currmove":
+                if tokens.isEmpty {
+                    break
+                }
+                currMoveUSI = tokens.removeFirst()
+            case "hashfull":
+                if tokens.isEmpty {
+                    break
+                }
+                hashFull = Int(tokens.removeFirst())
+            case "nps":
+                if tokens.isEmpty {
+                    break
+                }
+                nps = Int(tokens.removeFirst())
+            case "string":
+                string = tokens.joined(separator: " ")
+                tokens = []
+            default:
+                // unknown
+                print("unknown usi info token \(subcmd)")
+                tokens = []
+            }
+        }
+        
+        return USISearchProgress(depth: depth, selDepth: selDepth, time: time, nodes: nodes, pvUSI: pvUSI, multiPV: multiPV, score: score, currMoveUSI: currMoveUSI, hashFull: hashFull, nps: nps, string: string)
+    }
+}
+
 enum CSAGameState: CustomStringConvertible {
     case initializingUSI
     case initializingCSA
@@ -89,6 +204,14 @@ class CSAStatusCallback {
             }
         }
     }
+    
+    func updateSearchProgress(searchProgress: SearchProgress) {
+        DispatchQueue.main.async {
+            if let view = self.view {
+                view.searchProgress = searchProgress
+            }
+        }
+    }
 }
 
 class USIStatusCallback {
@@ -122,6 +245,7 @@ enum EngineMode: String {
 class MatchViewModel: ObservableObject {
     @Published var matchStatus: MatchStatus
     @Published var communicationHistory: [String]
+    @Published var searchProgress: SearchProgress?
 
     var csaClient: CSAClient?
     var usiClient: USIClient?
