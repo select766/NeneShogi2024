@@ -39,11 +39,7 @@ func saveCSAConfigSave(csaConfigSave: CSAConfigSave) {
 
 struct ContentView: View {
     @State var latestMessage: String = "Press Start"
-    @State var matchManager: MatchManager?
     @State var matchStatus: MatchStatus? = nil
-    @State var communicationHistory: [CommunicationItem] = []
-    @State var commuicationHistoryDisplay: [CommunicationHistoryDisplayItem] = []
-    @State var searchProgress: SearchProgress? = nil
     @State var testProgress: String = ""
     @State var usiServerIpAddress: String = UserDefaults.standard.string(forKey: userDefaultsUSIServerIpAddressKey) ?? "127.0.0.1"
     @State var csaConfigSave: CSAConfigSave
@@ -59,7 +55,10 @@ struct ContentView: View {
     @State var csaTimeTotalSec: String
     @State var csaTimeIncrementSec: String
     @State var csaShowLoginPassword: Bool = false
-    @State var debugView = false
+    @State var matchRunning: Bool = false
+    @State var serverType: String = "USI"
+    @State var usiConfig: USIConfig?
+    @State var csaConfig: CSAConfig?
     
     init() {
         let csaConfigSave = loadCSAConfigSave() ?? CSAConfigSave(configs: [:], lastUsedConfig: nil)
@@ -92,44 +91,6 @@ struct ContentView: View {
         }
     }
     
-    func start(serverType: String) {
-        if matchManager != nil {
-            return
-        }
-        let shogiUIInterface = ShogiUIInterface(displayMessage: {message in DispatchQueue.main.async {
-            self.latestMessage = message
-        }
-        }, pushCommunicaionHistory: { communicationItem in
-            DispatchQueue.main.async {
-                self.communicationHistory.append(communicationItem)
-                
-                var cis: [CommunicationHistoryDisplayItem] = []
-                for i in max(0, self.communicationHistory.count - 1000)..<self.communicationHistory.count {
-                    let ci = self.communicationHistory[i]
-                    let prefix: String
-                    switch ci.direction {
-                    case .recv:
-                        prefix = "< "
-                    case .send:
-                        prefix = "> "
-                    }
-                    cis.append(CommunicationHistoryDisplayItem(id: i, displayString: prefix + ci.message))
-                }
-                commuicationHistoryDisplay = cis
-            }
-        }, updateMatchStatus: {matchStatus in DispatchQueue.main.async {
-            self.matchStatus = matchStatus
-        }}, updateSearchProgress: {searchProgress in DispatchQueue.main.async {
-            self.searchProgress = searchProgress
-        }})
-        UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
-        matchManager = MatchManager(shogiUIInterface: shogiUIInterface)
-        if serverType == "USI" {
-            matchManager?.startUSI(usiConfig: USIConfig(usiServerIpAddress: usiServerIpAddress, usiServerPort: 8090, ponder: true))
-        } else if serverType == "CSA" {
-            matchManager?.startCSA(csaConfig: formToCSAConfig())
-        }
-    }
     
     func testPosition() {
         DispatchQueue.global(qos: .background).async {
@@ -241,48 +202,25 @@ struct ContentView: View {
         saveCSAConfigSave(csaConfigSave: csaConfigSave)
     }
     
+    
+    func start(serverType: String) {
+        if matchRunning {
+            return
+        }
+        UserDefaults.standard.set(usiServerIpAddress, forKey: userDefaultsUSIServerIpAddressKey)
+        if serverType == "USI" {
+            usiConfig = USIConfig(usiServerIpAddress: usiServerIpAddress, usiServerPort: 8090, ponder: true)
+        } else if serverType == "CSA" {
+            csaConfig = formToCSAConfig()
+        }
+        self.serverType = serverType
+        matchRunning = true
+    }
+    
     var body: some View {
         Group {
-            if let matchStatus = matchStatus {
-                VStack {
-                    ScoreBarView(matchStatus: matchStatus)
-                    ScoreChartView(matchStatus: matchStatus)
-                    Spacer()
-                    HStack {
-                        BoardView(matchStatus: matchStatus)
-                        VStack(alignment: .center) {
-                            if debugView {
-                                ScrollView(.vertical, showsIndicators: true) {
-                                    ScrollViewReader {
-                                        proxy in
-                                        VStack(alignment: .leading) {
-                                            ForEach(commuicationHistoryDisplay) {cItem in
-                                                Text(cItem.displayString).id(cItem.id)
-                                            }
-                                        }.onChange(of: (self.commuicationHistoryDisplay.last?.id ?? 0), perform: {
-                                            value in proxy.scrollTo(value, anchor: .bottom)
-                                        })
-                                    }
-                                    
-                                }.frame(maxWidth: .infinity, maxHeight: 600.0)
-                            } else {
-                                if let searchProgress = searchProgress {
-                                    PVView(searchProgress: searchProgress)
-                                }
-                                
-                                MoveHistoryView(matchStatus: matchStatus)
-                            }
-                            Spacer()
-                            Button(action: {
-                                debugView = !debugView
-                            }) {
-                                Text("Debug")
-                            }
-                        }
-                    }
-                }.background(Color(red: 0.8, green: 0.8, blue: 0.8))
-                
-                
+            if matchRunning {
+                MatchView(serverType: serverType, usiConfig: usiConfig, csaConfig: csaConfig)
             } else {
                 VStack {
                     Text(latestMessage)
