@@ -12,4 +12,9 @@ setoption DNN_Model1 value
 setoption DNN_Batch_Size1 value 8
 setoption USI_Ponder value true
 setoption Stochastic_Ponder value true
+setoption BookFile value user_book1.db
+setoption BookDir value .
+setoption BookDepthLimit value 0
+setoption BookMoves value 32
+setoption IgnoreBookPly value true
 """.split(separator: "\n").map({String($0)})
