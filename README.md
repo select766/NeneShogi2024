@@ -112,3 +112,25 @@ sudo log collect --device --last 1d
 log show --archive system_logs.logarchive --predicate '(subsystem IN {"jp.outlook.select766.NeneShogiSwift"})' --last 1d
 ```
 
+## USIモード
+
+USIプロトコルを直接TCPに載せるデバッグ用モード。
+
+Macで以下のシェルスクリプト (`port8090.sh`)を作成
+
+```bash
+#!/bin/sh
+nc -l 8090
+```
+
+```
+chmod +x port8090.sh
+```
+
+iOSシミュレータでアプリを起動。
+
+将棋所Macで、シェルスクリプトをエンジンとして登録（待機状態になる）。
+
+アプリで"Start USI"をタップすると接続され、エンジン登録が完了する。
+
+以降、対局で使える。Mac側で対局開始操作をしてから、iOS側で接続操作をする。一度接続が終了したら、アプリを再起動する必要がある。
