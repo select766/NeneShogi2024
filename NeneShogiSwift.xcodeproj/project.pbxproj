@@ -10,7 +10,6 @@
 		7410BC882BB9072900E05DF0 /* MatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC872BB9072900E05DF0 /* MatchView.swift */; };
 		7410BC8A2BB90D8C00E05DF0 /* MatchStaticView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */; };
 		7410BC8D2BB965F100E05DF0 /* YaneuraOuiOSSPM in Frameworks */ = {isa = PBXBuildFile; productRef = 7410BC8C2BB965F100E05DF0 /* YaneuraOuiOSSPM */; };
-		7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */; };
 		7410BC912BBD752300E05DF0 /* EngineCommunicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */; };
 		74B0E3052BC16BAE002040E9 /* util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3042BC16BAE002040E9 /* util.swift */; };
 		74B0E30D2BCA1594002040E9 /* MatchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */; };
@@ -18,6 +17,7 @@
 		74B0E3112BCA7773002040E9 /* ScoreBarTwoRowsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3102BCA7773002040E9 /* ScoreBarTwoRowsView.swift */; };
 		74B0E3132BCA83CD002040E9 /* DefaultUSIOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E3122BCA83CD002040E9 /* DefaultUSIOptions.swift */; };
 		74B0E3152BCA8765002040E9 /* user_book1.db in Resources */ = {isa = PBXBuildFile; fileRef = 74B0E3142BCA8765002040E9 /* user_book1.db */; };
+		74B0E31D2BCAA4DA002040E9 /* DlShogiResnet.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 74B0E31C2BCAA4DA002040E9 /* DlShogiResnet.mlpackage */; };
 		AA22E00C27BA73580075371D /* USIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22E00B27BA73580075371D /* USIClient.swift */; };
 		AA90C4D927B8BED700ED174E /* NeneShogiSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */; };
 		AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA90C4DA27B8BED700ED174E /* ContentView.swift */; };
@@ -69,7 +69,6 @@
 /* Begin PBXFileReference section */
 		7410BC872BB9072900E05DF0 /* MatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchView.swift; sourceTree = "<group>"; };
 		7410BC892BB90D8C00E05DF0 /* MatchStaticView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchStaticView.swift; sourceTree = "<group>"; };
-		7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = DlShogiResnet.mlmodel; sourceTree = "<group>"; };
 		7410BC902BBD752300E05DF0 /* EngineCommunicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineCommunicator.swift; sourceTree = "<group>"; };
 		74B0E3042BC16BAE002040E9 /* util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = util.swift; sourceTree = "<group>"; };
 		74B0E30C2BCA1594002040E9 /* MatchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchViewModel.swift; sourceTree = "<group>"; };
@@ -77,6 +76,7 @@
 		74B0E3102BCA7773002040E9 /* ScoreBarTwoRowsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreBarTwoRowsView.swift; sourceTree = "<group>"; };
 		74B0E3122BCA83CD002040E9 /* DefaultUSIOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultUSIOptions.swift; sourceTree = "<group>"; };
 		74B0E3142BCA8765002040E9 /* user_book1.db */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = user_book1.db; sourceTree = "<group>"; };
+		74B0E31C2BCAA4DA002040E9 /* DlShogiResnet.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = DlShogiResnet.mlpackage; sourceTree = "<group>"; };
 		AA05484F281D3C490032AF12 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA22E00B27BA73580075371D /* USIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USIClient.swift; sourceTree = "<group>"; };
 		AA90C4D527B8BED700ED174E /* NeneShogiSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeneShogiSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -165,6 +165,7 @@
 			children = (
 				AA05484F281D3C490032AF12 /* Info.plist */,
 				AA995E6327CA14B800D1B5C2 /* PositionTestCase.txt */,
+				74B0E31C2BCAA4DA002040E9 /* DlShogiResnet.mlpackage */,
 				AA90C4D827B8BED700ED174E /* NeneShogiSwiftApp.swift */,
 				AA90C4DA27B8BED700ED174E /* ContentView.swift */,
 				74B0E30E2BCA307F002040E9 /* ConfigView.swift */,
@@ -179,7 +180,6 @@
 				AA9C013827C1CF8E00BB71E0 /* Piece.swift */,
 				AA9C013A27C1D52C00BB71E0 /* UndoMoveInfo.swift */,
 				AA9C013C27C1D6BA00BB71E0 /* Position.swift */,
-				7410BC8E2BB96BF400E05DF0 /* DlShogiResnet.mlmodel */,
 				AA9C013427C1C88600BB71E0 /* Square.swift */,
 				AA9C013627C1CCB800BB71E0 /* Color.swift */,
 				AA9C013E27CA028900BB71E0 /* PositionTestCase.swift */,
@@ -372,6 +372,7 @@
 				AAF48E7027EEB607007BF351 /* SearchBench.swift in Sources */,
 				7410BC8A2BB90D8C00E05DF0 /* MatchStaticView.swift in Sources */,
 				AA9C013327C1C5DE00BB71E0 /* Move.swift in Sources */,
+				74B0E31D2BCAA4DA002040E9 /* DlShogiResnet.mlpackage in Sources */,
 				74B0E3112BCA7773002040E9 /* ScoreBarTwoRowsView.swift in Sources */,
 				AA9C013727C1CCB800BB71E0 /* Color.swift in Sources */,
 				AA90C4DB27B8BED700ED174E /* ContentView.swift in Sources */,
@@ -389,7 +390,6 @@
 				AACEC87D281CC6B600517C11 /* ScoreBarView.swift in Sources */,
 				AACEC8752813D72000517C11 /* USIConfig.swift in Sources */,
 				AACEC87F281CDE8B00517C11 /* MoveHistoryView.swift in Sources */,
-				7410BC8F2BB96BF400E05DF0 /* DlShogiResnet.mlmodel in Sources */,
 				7410BC882BB9072900E05DF0 /* MatchView.swift in Sources */,
 				AA22E00C27BA73580075371D /* USIClient.swift in Sources */,
 				AA9C013B27C1D52C00BB71E0 /* UndoMoveInfo.swift in Sources */,
@@ -486,7 +486,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -541,7 +541,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -575,6 +575,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = jp.outlook.select766.NeneShogiSwift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -607,6 +608,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = jp.outlook.select766.NeneShogiSwift;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
