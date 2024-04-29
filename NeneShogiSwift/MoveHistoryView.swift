@@ -26,7 +26,7 @@ struct MoveHistoryView: View {
                 }
             }
             
-            return "\(String(format: "%3d", tekazu)) \(detailedMove.toPrintString()) \(usedTime != nil ? timeToString(sec: usedTime!) : "*") / \(timeToString(sec: totalUsedTime))\(scoreStr)"
+            return "\(String(format: "%3d", tekazu)) \(detailedMove.toPrintString()) \(usedTime != nil ? String(format: "%3d", usedTime!) : "*") / \(timeToString(sec: totalUsedTime))\(scoreStr)"
         }
     }
     
@@ -50,37 +50,31 @@ struct MoveHistoryView: View {
     }
     var body: some View {
         let moveHistory = toMoveHistory()
-        VStack {
-            Text("指し手 消費時間/合計/評価値").font(.system(size: gridSize * 0.5))
-            ScrollView(.vertical, showsIndicators: true) {
-                ScrollViewReader {
-                    proxy in
-                    VStack(alignment: .leading) {
-                        ForEach(moveHistory) {moveHistoryItem in
-                            Text(moveHistoryItem.toPrintString()).font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.25, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
-                        }
-                    }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
-                        // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
-                        value in
-                        proxy.scrollTo(value, anchor: .bottom)
-                    })
-                }
-                
-            }.frame(maxWidth: .infinity, maxHeight: gridSize * 3.75)
-        }.background(Color.white)
+        GeometryReader {
+            geometry in
+            VStack {
+                Text("指し手 消費時間/合計/評価値").font(.system(size: gridSize * 0.5))
+                ScrollView(.vertical, showsIndicators: true) {
+                    ScrollViewReader {
+                        proxy in
+                        VStack(alignment: .leading) {
+                            ForEach(moveHistory) {moveHistoryItem in
+                                Text(moveHistoryItem.toPrintString()).foregroundStyle(.black).font(Font(UIFont.monospacedDigitSystemFont(ofSize: gridSize * 0.5, weight: .medium))).lineLimit(1).minimumScaleFactor(0.1)
+                            }
+                        }.onChange(of: matchStatus.moveHistory.count - 1, perform: {
+                            // withAnimationをつけるとかっこいいが、アニメーションが終わる前に次の手が進むと一番下までスクロールしないままになる
+                            value in
+                            proxy.scrollTo(value, anchor: .bottom)
+                        })
+                    }
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }.background(Color.white.edgesIgnoringSafeArea([]))
+        }
     }
 }
 
 struct MoveHistoryView_Previews: PreviewProvider {
-    static var sampleMatchStatus: MatchStatus {
-        get {
-            let position = Position()
-            position.setSFEN(sfen: "9/1+P7/2+P+P4l/5+P+R2/2K+S5/LPS6/2N1P1g+p+p/2GG1+s1+rk/5+s1b+p b G2LPb3n8p 1")
-            return MatchStatus(gameState: .playing, players: ["player1", "player2"], position: position, moveHistory: [MoveHistoryItem(detailedMove: DetailedMove(special: .Ordinary, moveFrom: Square(Square.SQ_NB), moveTo: Square.fromFileRank(file: 2, rank: 6), sideToMove: PColor.WHITE, moveFromPieceType: Piece.GOLD, moveToPieceType: Piece.GOLD, isPromote: false, isDrop: true), usedTime: 1.0, scoreCp: -300)])
-        }
-    }
-    
     static var previews: some View {
-        MoveHistoryView(matchStatus: sampleMatchStatus)
+        MoveHistoryView(matchStatus: getSampleMatchStatus())
     }
 }
