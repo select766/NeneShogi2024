@@ -141,6 +141,8 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     
     var positionForGo: Position? = nil
     var pendingMessageOnPonder: USIActorMessage? = nil
+    var pvScore: Int? = nil
+    var pvUSI: [String]? = nil
     
     init(queue: DispatchQueue) {
         super.init(queue: queue, initialState: .beforeLaunch)
@@ -149,6 +151,9 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
     override func stateChanged(newState: USIActorState, lastState: USIActorState) {
         print("usi state: \(newState) <- \(lastState)")
         switch newState {
+        case .gameGoing:
+            pvScore = nil
+            pvUSI = nil
         case .endGameWaiting:
             // gameoverを送ってから、一定時間は次のUSI操作をしないよう待機する時間
             queue.asyncAfter(deadline: .now() + 5.0, execute: {
@@ -253,13 +258,13 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
                 state = .endGameWaiting
             case let .usiRecv(commandType: commandType, commandArg: commandArg):
                 if commandType == "info" {
-                    // do nothing
+                    parseGoInfo(commandArg: commandArg, ponder: false)
                 } else if commandType == "bestmove" {
                     if let positionForGo = positionForGo, let commandArg = commandArg {
                         let parts = commandArg.split(separator: " ")
                         let moveUSI = String(parts[0])
                         let ponderUSI = parts.count >= 3 ? String(parts[2]) : nil
-                        emit(.csa(.bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: ponderUSI)))
+                        emit(.csa(.bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: ponderUSI, score: pvScore, pvUSI: pvUSI)))
                         self.positionForGo = nil
                         state = .gameIdle
                     } else {
@@ -327,6 +332,81 @@ class USIActor : Actor<USIActor.USIActorMessage, USIActor.USIActorState, USIActo
         }
     }
     
+    private func parseGoInfo(commandArg: String?, ponder: Bool) -> Void {
+        guard let commandArg = commandArg else {
+            return
+        }
+        
+        // TODO: npsなどをパース
+        var score: Int? = nil
+        var pvUSI: [String]? = nil
+        var tokens: [String] = commandArg.split(separator: " ").map{s in String(s)}
+        while tokens.count > 0 {
+            let subcmd = tokens.removeFirst()
+            switch subcmd {
+            case "depth":
+                // TODO: removeFirstはempty arrayに適用するとクラッシュするので要注意
+                let depth = tokens.removeFirst()
+            case "seldepth":
+                let seldepth = tokens.removeFirst()
+            case "time":
+                let time = tokens.removeFirst()
+            case "nodes":
+                let nodes = tokens.removeFirst()
+            case "pv":
+                pvUSI = tokens
+            case "multipv":
+                let multipv = tokens.removeFirst()
+            case "score":
+                let cpOrMate = tokens.removeFirst()
+                let value = tokens.removeFirst()
+                if tokens.count > 0 {
+                    // lowerbound or upperbound
+                    let lbub = tokens.removeFirst()
+                }
+                if cpOrMate == "cp" {
+                    score = Int(value)
+                } else if cpOrMate == "mate" {
+                    let mateBase = 32000
+                    if let parsedValue = Int(value) {
+                        if parsedValue > 0 {
+                            // 手番側が parsedValue 手で勝つ
+                            score = mateBase - parsedValue
+                        } else {
+                            // 相手側が -parsedValue 手で勝つ
+                            score = -mateBase - parsedValue
+                        }
+                    } else {
+                        if value == "+" {
+                            score = mateBase
+                        } else if value == "-" {
+                            score = -mateBase
+                        }
+                    }
+                }
+            case "currmove":
+                let moveUSI = tokens.removeFirst()
+            case "hashfull":
+                let hashFull = tokens.removeFirst()
+            case "nps":
+                let nps = tokens.removeFirst()
+            case "string":
+                let infoString = tokens.joined(separator: " ")
+            default:
+                // unknown
+                tokens = []
+                break
+            }
+        }
+        
+        if pvUSI != nil {
+            self.pvUSI = pvUSI
+        }
+        
+        if score != nil {
+            self.pvScore = score
+        }
+    }
     
     private func yaneRecv(command: String) -> Void {
         print("yaneRecv \(command)")
@@ -355,7 +435,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         case csaRecv(command: String)
         case gameSummaryReceived
         case readyok
-        case bestmove(position: Position, moveUSI: String, ponderUSI: String?)
+        case bestmove(position: Position, moveUSI: String, ponderUSI: String?, score: Int?, pvUSI: [String]?)
         case endGameReceived(reason: String)
     }
     
@@ -389,6 +469,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     var moveHistory: [MoveHistoryItem] = []
     var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
     var csaTimeConfig: CSATimeConfig = CSATimeConfig(totalTime: 0.0, byoyomi: 10.0, increment: 0.0)
+    var myScoreCp: Int? = nil
     var _tmpGameSummary: [String: String] = [:] // Game_Summary受信中の情報を蓄積する
     
     // 通信管理
@@ -551,12 +632,21 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             switch message {
             case let .csaRecv(command: command):
                 _handleCSACommandGame(command: command)
-            case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _):
+            case let .bestmove(position: positionForGo, moveUSI: moveUSI, ponderUSI: _, score: score, pvUSI: pvUSI):
                 guard let bestMove = Move.fromUSIString(moveUSI: moveUSI) else {
                     fatalError()
                 }
                 let bestMoveCSA = positionForGo.makeCSAMove(move: bestMove)
-                self.sendCSA(message: bestMoveCSA)
+                // TODO pvUSIを送る
+                myScoreCp = score
+                let moveMessage: String
+                if let score = score, csaConfig.sendScore {
+                    // コメントに評価値を入れる拡張
+                    moveMessage = "\(bestMoveCSA),'* \(score)"
+                } else {
+                    moveMessage = bestMoveCSA
+                }
+                self.sendCSA(message: moveMessage)
                 // 手番の転換は、サーバから消費時間が返ってきた時に行う（ponder開始がその分遅れるデメリットはある）
             case let .endGameReceived(reason: _):
                 state = .endingGame
@@ -682,8 +772,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                     } catch {
                         print("error on extracting time")
                     }
-                    // TODO 評価値持ってない
-                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? 0 : nil))
+                    moveHistory.append(MoveHistoryItem(detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
                     print("\(detail.toPrintString()), \(usedTime ?? -1.0)")
                     
                     // 手番を反転させて、思考開始
@@ -798,12 +887,16 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     }
     
     private func sendCSA(message: String) {
+        logger.log("send: \(message)")
+        print("csasend \(message)")
+        matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: message))
         _send(messageWithNewline: message + "\n")
     }
     
     private func sendCSA(messages: [String]) {
         for m in messages {
             logger.log("send: \(m)")
+            print("csasend \(m)")
             matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: m))
         }
         _send(messageWithNewline: messages.map({m in m + "\n"}).joined())

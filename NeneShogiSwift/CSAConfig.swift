@@ -6,4 +6,5 @@ struct CSAConfig: Codable {
     var loginName: String
     var loginPassword: String
     var ponder: Bool
+    var sendScore: Bool // 評価値送信有効
 }
