@@ -53,7 +53,7 @@ struct MoveHistoryView: View {
         GeometryReader {
             geometry in
             VStack {
-                Text("指し手 消費時間/合計/評価値").font(.system(size: gridSize * 0.5))
+                Text("指し手 消費時間/合計/評価値").foregroundStyle(.black).font(.system(size: gridSize * 0.5))
                 ScrollView(.vertical, showsIndicators: true) {
                     ScrollViewReader {
                         proxy in

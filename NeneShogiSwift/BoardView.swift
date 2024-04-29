@@ -91,7 +91,7 @@ struct BoardView: View {
                 ZStack(alignment: .bottomTrailing) {
                     Image(p.imageName).resizable().frame(width: gridSize, height: gridSize).rotationEffect(.degrees(p.angle))
                     if p.handCount > 1 {
-                        Text("\(p.handCount)").font(.system(size: gridSize * 0.5)).background(Color.white).padding(2.0)
+                        Text("\(p.handCount)").foregroundStyle(.black).font(.system(size: gridSize * 0.5)).background(Color.white).padding(2.0)
                     }
                 }.position(p.position)
             })

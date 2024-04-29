@@ -9,13 +9,13 @@ struct PVView: View {
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
-                Text("評価値: \(searchProgress?.score?.description ?? "-")")
-                Text("NPS: \(searchProgress?.nps?.description ?? "-")")
+                Text("評価値: \(searchProgress?.score?.description ?? "-")").foregroundStyle(.black)
+                Text("NPS: \(searchProgress?.nps?.description ?? "-")").foregroundStyle(.black)
             }
             if let searchProgress = searchProgress {
-                Text(searchProgress.pv.map({dMove in dMove.toPrintString()}).joined(separator: " "))
+                Text(searchProgress.pv.map({dMove in dMove.toPrintString()}).joined(separator: " ")).foregroundStyle(.black)
             } else {
-                Text("読み筋")
+                Text("読み筋").foregroundStyle(.black)
             }
         }
     }

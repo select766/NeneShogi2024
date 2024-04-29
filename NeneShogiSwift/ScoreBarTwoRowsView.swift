@@ -59,7 +59,7 @@ struct ScoreBarTwoRowsView: View {
             VStack(spacing: 0) {
                 HStack {
                     Text(getPlayerInfo(index: 0, now: now)).foregroundStyle(.black).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .leading)
-                    Text(getPlayerInfo(index: 1, now: now)).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .trailing)
+                    Text(getPlayerInfo(index: 1, now: now)).foregroundStyle(.black).font(.system(size: gridSizeW * 0.8)).frame(width: gridSizeW * 8.0, height: gridSizeH, alignment: .trailing)
                 }
                 if case .playing = matchStatus.csaGameState {
                     HStack {
@@ -71,7 +71,7 @@ struct ScoreBarTwoRowsView: View {
                         Text("\(100 - blackWinratePercent) %").foregroundStyle(.black).font(.system(size: gridSizeW * 1.0)).frame(width: gridSizeW * 3.75)
                     }.frame(height: gridSizeH)
                 } else {
-                    Text(matchStatus.csaGameState.description).frame(height: gridSizeH)
+                    Text(matchStatus.csaGameState.description).foregroundStyle(.black).frame(height: gridSizeH)
                 }
             }.frame(width: gridSizeW * 16.875, height: gridSizeH * 2.0).background(Color.yellow.edgesIgnoringSafeArea([]))
             // .edgesIgnoringSafeArea([]) がないと、セーフエリア外に黄色背景が伸びる
