@@ -15,9 +15,8 @@ class CSAClient {
     let matchManager: MatchManager
     var serverEndpoint: NWEndpoint
     var connection: NWConnection?
-    let queue: DispatchQueue
+    let queue: DispatchQueue // データ構造の書き換えはこのqueueのスレッドで行う
     var recvBuffer: Data = Data()
-    var player: PlayerProtocol?
     var myColor: PColor?
     var moves: [Move]
     var position: Position
@@ -29,6 +28,8 @@ class CSAClient {
     var lastGoScoreCp: Int? = nil
     var players: [String?] = [nil, nil]
     var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
+    var goRunningPonder = false
+    var goRunningMoves: [Move]
     
     init(matchManager: MatchManager, csaConfig: CSAConfig) {
         self.matchManager = matchManager // TODO: 循環参照回避
@@ -36,23 +37,81 @@ class CSAClient {
         queue = DispatchQueue(label: "csaClient")
         self.serverEndpoint = NWEndpoint.hostPort(host: NWEndpoint.Host(self.csaConfig.csaServerIpAddress), port: NWEndpoint.Port(rawValue: self.csaConfig.csaServerPort)!)
         self.moves = []
+        self.goRunningMoves = []
         self.position = Position()
     }
     
     func start() {
         // AIは複数回サーバに接続する場合でも最初の1回だけ
-        switch playerClass {
-        case "Random":
-            self.player = RandomPlayer()
-        case "Policy":
-            self.player = PolicyPlayer()
-        case "MCTS":
-            self.player = MCTSPlayer()
-        default:
-            fatalError("Unknown player selection")
+        // TODO start yane usi -> usiok
+        startYaneuraou(recvCallback: {command in
+            self.queue.async {
+                self.yaneRecv(command: command)
+            }})
+        sendToYaneuraou(messageWithoutNewLine: "usi")
+        // usiokが来るのを待つ
+    }
+    
+    private func yaneRecv(command: String) -> Void {
+        print("yaneRecv \(command)")
+        // やねうら王からメッセージを受信した（queueのスレッドで呼ばれる）
+        let splits = command.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
+        if splits.count < 1 {
+            return
         }
-        startConnection()
-        setKeepalive()
+        let commandType = splits[0]
+        let commandArg = splits.count == 2 ? String(splits[1]) : nil
+        switch commandType {
+        case "option":
+            break
+        case "usiok":
+            startConnection()
+            setKeepalive()
+            // TODO ponder
+            for option in ["setoption DNN_Model1 value ", "setoption DNN_Batch_Size1 value 8"] {
+                sendToYaneuraou(messageWithoutNewLine: option)
+            }
+        case "info":
+            break
+        case "readyok":
+            self.state = .game
+            self.myRemainingTime = self.csaConfig.timeTotalSec
+            self.moves = []
+            self.moveHistory = []
+            self.position.setHirate()
+            self.sendCSA(message: "AGREE")
+            
+            self.csaKifu = CSAKifu(players: self.players)
+            self.sendMatchStatus(gameState: .playing)
+            break
+        case "bestmove":
+            // TODO
+            // これはponderでない思考の時
+            self.goRunning = false
+            guard let bestMoveUSI = commandArg else {
+                fatalError()
+            }
+            if goRunningPonder {
+                // ponderの時
+                // Stochastic ponderで置換表を埋めるだけ。ponderhit未実装。
+                print("ponder bestmove \(bestMoveUSI)")
+            } else {
+                // ponderでない時
+                // 千日手成立の場合、サーバから千日手が成立する手がきた後、#SENNICHITE,#DRAWが来る。手を受け取った時点で思考を開始してしまうので、思考結果を出力してしまう場合があるがレースコンディションなので仕方ない。現状、一局ごとにTCP接続を切っているので、次の対局に影響することはないので放置。
+                if case .game = self.state {
+                    guard let bestMove = Move.fromUSIString(moveUSI: bestMoveUSI) else {
+                        fatalError()
+                    }
+                    let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
+                    // self.lastGoScoreCp = scoreCp
+                    self.sendCSA(message: bestMoveCSA)
+                    self.runPonderIfPossible(bestMove: bestMove, movesForGo: goRunningMoves)
+                }
+            }
+            break
+        default:
+            break
+        }
     }
     
     private func sendMatchStatus(gameState: MatchStatus.GameState) {
@@ -159,19 +218,8 @@ class CSAClient {
         } else if command.starts(with: "Name-:") {
             players[1] = String(command.dropFirst(6))
         } else if command.starts(with: "END Game_Summary") {
-            self.player?.isReady(callback: {
-                self.queue.async {
-                    self.state = .game
-                    self.myRemainingTime = self.csaConfig.timeTotalSec
-                    self.moves = []
-                    self.moveHistory = []
-                    self.position.setHirate()
-                    self.sendCSA(message: "AGREE")
-                    
-                    self.csaKifu = CSAKifu(players: self.players)
-                    self.sendMatchStatus(gameState: .playing)
-                }
-            })
+            // TODO 指定局面戦への対応では何かしら必要かも
+            sendToYaneuraou(messageWithoutNewLine: "isready")
         }
     }
     
@@ -179,7 +227,7 @@ class CSAClient {
         var mayneedgo = false
         if command.starts(with: "START") {
             // TODO: STARTとAGREE返答時の初期化をどちらかに揃える
-            player?.usiNewGame()
+            sendToYaneuraou(messageWithoutNewLine: "usinewgame")
             moves = []
             moveHistory = []
             position.setHirate()
@@ -235,10 +283,8 @@ class CSAClient {
             // これを送るとサーバから切断される
             // 対局終了時はサーバから自動的に切断される場合もある
             // ponder中に終わる場合があるので一応stopしておく
-            guard let player = self.player else {
-                fatalError()
-            }
-            player.stop()
+            sendToYaneuraou(messageWithoutNewLine: "stop")
+            // TODO: gameoverを送る必要？
             self.sendCSA(message: "LOGOUT")
             self.connection?.cancel()
             csaKifu?.save()
@@ -263,40 +309,60 @@ class CSAClient {
     }
     
     func runGo(thinkingTime: ThinkingTime, secondCall: Bool) {
-        guard let player = self.player else {
-            fatalError()
-        }
         // ponderを止める
-        player.stop()
         if goRunning {
-            if !secondCall {
-                print("waiting last go ends")
+            sendToYaneuraou(messageWithoutNewLine: "stop")
+            if goRunning {
+                if !secondCall {
+                    print("waiting last go ends")
+                }
+                queue.asyncAfter(deadline: .now() + 0.01, execute: {
+                    self.runGo(thinkingTime: thinkingTime, secondCall: true)
+                })
+                return
             }
-            queue.asyncAfter(deadline: .now() + 0.01, execute: {
-                self.runGo(thinkingTime: thinkingTime, secondCall: true)
-            })
-            return
         }
         goRunning = true
+        goRunningPonder = false
+        goRunningMoves = moves
         // ponderが終わってから、positionを設定する
-        let movesForGo = moves
-        player.position(moves: movesForGo)
-        player.go(info: {(sp: SearchProgress) in
-            self.queue.async {
-                self.matchManager.updateSearchProgress(searchProgress: sp)
-            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, scoreCp: Int) in
-            self.queue.async {
-                self.goRunning = false
-                // 千日手成立の場合、サーバから千日手が成立する手がきた後、#SENNICHITE,#DRAWが来る。手を受け取った時点で思考を開始してしまうので、思考結果を出力してしまう場合があるがレースコンディションなので仕方ない。現状、一局ごとにTCP接続を切っているので、次の対局に影響することはないので放置。
-                if case .game = self.state {
-                    let bestMoveCSA = self.position.makeCSAMove(move: bestMove)
-                    self.lastGoScoreCp = scoreCp
-                    self.sendCSA(message: bestMoveCSA)
-                    self.runPonderIfPossible(bestMove: bestMove, movesForGo: movesForGo)
+        sendPositionToYane(moves: moves)
+        sendGoToYane(thinkingTime: thinkingTime, myColor: myColor!)
+    }
+    
+    private func sendPositionToYane(moves: [Move]) {
+        var positionCommand = "position startpos"
+        if moves.count > 0 {
+            positionCommand += " moves " + moves.map({ move in
+                move.toUSIString()
+            }).joined(separator: " ")
+        }
+        sendToYaneuraou(messageWithoutNewLine: positionCommand)
+    }
+    
+    private func sendGoToYane(thinkingTime: ThinkingTime, myColor: PColor) {
+        // TODO: 持ち時間の処理がこれでいいか確認する (USIでは、btimeとbincを足した時間が今回の思考時間)
+        var goCommand = ""
+        if thinkingTime.ponder {
+            goCommand = "go ponder btime 3600 wtime 3600 binc 1000"
+        } else {
+            if myColor == .BLACK {
+                goCommand = "go btime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) wtime 3600 "
+                if thinkingTime.fisher > 0.0 {
+                    goCommand += "binc \(Int((thinkingTime.fisher * 1000).rounded(.towardZero))) winc 1000"
+                } else {
+                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
+                }
+            } else {
+                goCommand = "go btime 3600 wtime \(Int((thinkingTime.remaining * 1000).rounded(.towardZero))) "
+                if thinkingTime.fisher > 0.0 {
+                    goCommand += "binc 1000 wing \(Int((thinkingTime.fisher * 1000).rounded(.towardZero)))"
+                } else {
+                    goCommand += "byoyomi \(Int((thinkingTime.byoyomi * 1000).rounded(.towardZero)))"
                 }
             }
-        })
+        }
+        sendToYaneuraou(messageWithoutNewLine: goCommand)
     }
     
     func runPonderIfPossible(bestMove: Move, movesForGo: [Move]) {
@@ -313,26 +379,16 @@ class CSAClient {
             return
         }
         print("run ponder")
-        guard let player = self.player else {
-            fatalError()
-        }
         // goで思考した局面+bestMoveで進めた局面で思考
         // ここでmovesを参照すると、通信タイミングによってbestmove適用前後のどちらか不定となるためまずい
         goRunning = true
+        goRunningPonder = true
         var posaftermove = movesForGo
         posaftermove.append(bestMove)
-        player.position(moves: posaftermove)
+        goRunningMoves = posaftermove
+        sendPositionToYane(moves: posaftermove)
         let thinkingTime = ThinkingTime(ponder: true, remaining: 3600.0, byoyomi: 0.0, fisher: 0.0)
-        player.go(info: {(sp: SearchProgress) in
-            self.queue.async {
-                self.matchManager.updateSearchProgress(searchProgress: sp)
-            }
-        }, thinkingTime: thinkingTime, callback: {(bestMove: Move, _: Int) in
-            self.queue.async {
-                print("ponder result \(bestMove.toUSIString())")
-                self.goRunning = false
-            }
-        })
+        sendGoToYane(thinkingTime: thinkingTime, myColor: myColor!)
     }
     
     func setKeepalive() {

@@ -1,76 +1,5 @@
 import Foundation
 import Network
-import YaneuraOuiOSSPM
-
-// AI種類選択
-var playerClass = "MCTS"
-
-
-// やねうら王とのプロセス内通信関係のバッファ（グローバル関数にするしかない）
-var yaneRecvBuffer: Data = Data()
-let recvSemaphore = DispatchSemaphore(value: 1)
-var yaneSendBuffer: Data = Data()
-let sendSemaphore = DispatchSemaphore(value: 1)
-var _cb: (String) -> Void = {_ in}
-func registerCallback(cb: @escaping (String) -> Void) {
-    _cb = cb
-}
-
-func usiWrite(char: Int32) -> Void {
-    // 思考スレッドから呼ばれる
-    // 1文字ずつくる。
-    // 改行が含まれている。複数行の場合もある。
-    // USIクライアント->USIサーバへの送信
-    if char < 0 {
-        print("usiWrite(EOF)")
-        return
-    }
-    
-    sendSemaphore.wait()
-    
-    if char == 0x0a {
-        // end of line
-        let completeBuffer = yaneSendBuffer
-        yaneSendBuffer = Data()
-        // 改行文字は含まない
-        _cb(String(data: completeBuffer, encoding: .utf8)!)
-    }
-    
-    yaneSendBuffer.append(contentsOf: [UInt8(clamping: char)])
-    
-    sendSemaphore.signal()
-}
-
-func usiRead() -> Int32 {
-    // 思考スレッドから呼ばれる
-    // USIサーバ->USIクライアントへの受信
-    var item: Int32 = 0
-    while true {
-        recvSemaphore.wait()
-        if yaneRecvBuffer.count > 0 {
-            item = Int32(yaneRecvBuffer[0])
-            // recvBuffer = recvBuffer.dropFirst()
-            // を使うと、次回のrecvBuffer[0]のアクセス時になぜかクラッシュする
-            yaneRecvBuffer = Data(yaneRecvBuffer[1...])
-            recvSemaphore.signal()
-            break
-        } else {
-            recvSemaphore.signal()
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-    }
-    
-    return item
-}
-
-
-func stringToUnsafeMutableBufferPointer(_ s: String) -> UnsafeMutableBufferPointer<Int8> {
-    let count = s.utf8CString.count
-    let result: UnsafeMutableBufferPointer<Int8> = UnsafeMutableBufferPointer<Int8>.allocate(capacity: count)
-    _ = result.initialize(from: s.utf8CString)
-    return result
-}
-
 
 class USIClient {
     let matchManager: MatchManager
@@ -115,16 +44,12 @@ class USIClient {
     
     private func startYane() {
         // やねうら王とのプロセス内通信準備
-        registerCallback(cb: {
+        startYaneuraou(recvCallback: {
             usiSendLine in
             self.queue.async {
                 self.sendUSI(message: usiSendLine)
             }
         })
-        let compute_units: Int32 = 2 // 0:cpu, 1: cpuandgpu, 2: all (neural engine)
-        let model_url_p = stringToUnsafeMutableBufferPointer(DlShogiResnet.urlOfModelInThisBundle.absoluteString)
-        let mainResult = YaneuraOuiOSSPM.yaneuraou_ios_main(usiRead, usiWrite, model_url_p.baseAddress!, compute_units)
-        print("yaneuraou_ios_main", mainResult)
     }
     
     func startRecv() {
@@ -166,10 +91,7 @@ class USIClient {
 
     func handleUSICommand(command: String) {
         // やねうら王に送る
-        recvSemaphore.wait()
-        let d = (command + "\n").data(using: .utf8)!
-        yaneRecvBuffer.append(d)
-        recvSemaphore.signal()
+        sendToYaneuraou(messageWithoutNewLine: command)
         handleUSICommandForDisplay(command: command)
     }
     
@@ -283,6 +205,7 @@ class USIClient {
     }
     
     func _send(messageWithNewline: String) {
+        // サーバへのUSIメッセージ送信
         for line in messageWithNewline.components(separatedBy: "\n") {
             if line.count > 0 {
                 matchManager.pushCommunicationHistory(communicationItem: CommunicationItem(direction: .send, message: line))
