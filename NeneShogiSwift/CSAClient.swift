@@ -778,7 +778,7 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                         logger.notice("Opponent used \(usedTime, privacy: .public) sec")
                         opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime + csaTimeConfig.increment - usedTime, decreasing: false)
                     }
-                    moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
+                    moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: nil))
                 }
             } else {
                 logger.error("parse move failed")
