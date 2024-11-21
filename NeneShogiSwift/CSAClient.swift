@@ -17,6 +17,16 @@ struct CSATimeConfig {
     let increment: Double
 }
 
+struct CSAStartMove {
+    let csaMove: String
+    let usedTime: Double
+}
+
+// 指定局面情報
+struct CSAStartPosition {
+    let moves: [CSAStartMove]
+}
+
 class CSAClient {
     let queue: DispatchQueue
     let usiActor: USIActor
@@ -414,9 +424,11 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
     var moveHistory: [MoveHistoryItem] = []
     var csaKifu: CSAKifu? = nil // ゲーム開始時に初期化、終了時にファイルに保存する
     var csaTimeConfig: CSATimeConfig = CSATimeConfig(totalTime: 0.0, byoyomi: 10.0, increment: 0.0)
+    var startPosition: CSAStartPosition = CSAStartPosition(moves: [])
     var myScoreCp: Int? = nil
     var lastGameResult: String? = nil
     var _tmpGameSummary: [String: String] = [:] // Game_Summary受信中の情報を蓄積する
+    var _tmpGameSummaryArray: [String] = [] // Game_Summary受信中の情報を蓄積する(メッセージ順に保存)
     var _tmpAbnormalGameTerminationReason: String? = nil
     
     // 通信管理
@@ -741,14 +753,47 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
         _tmpAbnormalGameTerminationReason = nil
         lastGameResult = nil
         csaKifu = CSAKifu(players: players)
+        // 開始局面の適用
+        for startMove in startPosition.moves {
+            csaKifu?.appendMove(moveCSAWithTime: "\(startMove.csaMove),T\(Int(startMove.usedTime))")
+            let moveColor = startMove.csaMove.starts(with: "+") ? PColor.BLACK : PColor.WHITE
+            if let move = position.parseCSAMove(csaMove: startMove.csaMove) {
+                logger.notice("parsed move: \(move.toUSIString(), privacy: .public)")
+                let detail = position.makeDetailedMove(move: move)
+                if move.isTerminal {
+                    moveHistory.append(MoveHistoryItem(positionBeforeMove: position.copy(), positionAfterMove: nil, detailedMove: detail, usedTime: nil, scoreCp: nil))
+                } else {
+                    moves.append(move)
+                    let positionBeforeMove = position.copy()
+                    position.doMove(move: move)
+                    
+                    // 消費時間の計算
+                    let usedTime = startMove.usedTime
+                    if moveColor == myColor {
+                        // 自分の消費時間
+                        logger.notice("I used \(usedTime, privacy: .public) sec")
+                        myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime + csaTimeConfig.increment - usedTime, decreasing: false)
+                    } else {
+                        // 相手の消費時間
+                        logger.notice("Opponent used \(usedTime, privacy: .public) sec")
+                        opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime + csaTimeConfig.increment - usedTime, decreasing: false)
+                    }
+                    moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
+                }
+            } else {
+                logger.error("parse move failed")
+            }
+        }
     }
     
     private func _handleCSACommandWaiting(command: String) {
         if command.starts(with: "BEGIN Game_Summary") {
             _tmpGameSummary = [:]
+            _tmpGameSummaryArray = []
         }
         let items = command.split(separator: ":", maxSplits: 2)
         _tmpGameSummary[String(items[0])] = items.count > 1 ? String(items[1]) : ""
+        _tmpGameSummaryArray.append(command)
         
         if command.starts(with: "END Game_Summary") {
             players[0] = _tmpGameSummary["Name+"]
@@ -771,9 +816,51 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
             // 持ち時間情報がないときは、安全側に倒して、秒読み10秒として扱う
             csaTimeConfig = CSATimeConfig(totalTime: Double(_tmpGameSummary["Total_Time"] ?? "0") ?? 0.0, byoyomi: Double(_tmpGameSummary["Byoyomi"] ?? "10") ?? 10.0, increment: Double(_tmpGameSummary["Increment"] ?? "0") ?? 0.0)
             
+            startPosition = _parseStartPosition(gameSummaryArray: _tmpGameSummaryArray)
+            
             dispatch(.gameSummaryReceived)
         }
-        // TODO 指定局面戦への対応ではBEGIN Positionの中の指し手を読む必要あり
+    }
+    
+    private func _parseStartPosition(gameSummaryArray: [String]) -> CSAStartPosition {
+        // 開始局面の読み込み
+        // 現時点では、平手初期局面＋指し手列の形式のみ対応（2024年時点の電竜戦TSECはこれでOK）
+        // アドホックな実装: "+" or "-"の行から、"End Position"までの間を指してとみなす
+        // 指し手の例: "+2726FU,T12"
+        var inRange = false
+        var startMoves: [CSAStartMove] = []
+        for command in gameSummaryArray {
+            if command == "+" || command == "-" {
+                inRange = true
+                continue
+            }
+            if command == "End Position" {
+                inRange = false
+                break
+            }
+            if inRange {
+                logger.info("start move: \(command, privacy: .public)")
+                let regex = try! NSRegularExpression(pattern: "^(.{7})(?:,T(\\d+))?$")
+                let matches = regex.matches(in: command, range: NSRange(location: 0, length: command.count))
+                if matches.count > 0 {
+                    let csaMoveStr = NSString(string: command).substring(with: matches[0].range(at: 1))
+                    
+                    var usedTime = 0.0
+                    if matches[0].range(at: 2).length > 0 {
+                        let timeStr = NSString(string: command).substring(with: matches[0].range(at: 2))
+                        if let timeParsed = Double(timeStr) {
+                            usedTime = timeParsed
+                        } else {
+                            logger.error("Time of start moves cannot be parsed! \(command, privacy: .public)")
+                        }
+                    }
+                    
+                    startMoves.append(CSAStartMove(csaMove: csaMoveStr, usedTime: usedTime))
+                }
+            }
+        }
+        
+        return CSAStartPosition(moves: startMoves)
     }
     
     func _handleCSACommandGame(command: String) {
@@ -793,26 +880,22 @@ class CSAActor : Actor<CSAActor.CSAActorMessage, CSAActor.CSAActorState, CSAActo
                     
                     // 消費時間の計算
                     var usedTime: Double? = nil
-                    do {
-                        let regex = try NSRegularExpression(pattern: ",T(\\d+)$")
-                        let matches = regex.matches(in: command, range: NSRange(location: 0, length: command.count))
-                        if matches.count > 0 {
-                            let timeStr = NSString(string: command).substring(with: matches[0].range(at: 1))
-                            if let timeParsed = Double(timeStr) {
-                                usedTime = timeParsed
-                                if moveColor == myColor {
-                                    // 自分の消費時間
-                                    logger.notice("I used \(timeParsed, privacy: .public) sec")
-                                    myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime - timeParsed, decreasing: myRemainingTime.decreasing)
-                                } else {
-                                    // 相手の消費時間
-                                    logger.notice("Opponent used \(timeParsed, privacy: .public) sec")
-                                    opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime - timeParsed, decreasing: opponentRemainingTime.decreasing)
-                                }
+                    let regex = try! NSRegularExpression(pattern: ",T(\\d+)$")
+                    let matches = regex.matches(in: command, range: NSRange(location: 0, length: command.count))
+                    if matches.count > 0 {
+                        let timeStr = NSString(string: command).substring(with: matches[0].range(at: 1))
+                        if let timeParsed = Double(timeStr) {
+                            usedTime = timeParsed
+                            if moveColor == myColor {
+                                // 自分の消費時間
+                                logger.notice("I used \(timeParsed, privacy: .public) sec")
+                                myRemainingTime = RemainingTime(remainingTime: myRemainingTime.remainingTime - timeParsed, decreasing: myRemainingTime.decreasing)
+                            } else {
+                                // 相手の消費時間
+                                logger.notice("Opponent used \(timeParsed, privacy: .public) sec")
+                                opponentRemainingTime = RemainingTime(remainingTime: opponentRemainingTime.remainingTime - timeParsed, decreasing: opponentRemainingTime.decreasing)
                             }
                         }
-                    } catch {
-                        logger.error("error on extracting time")
                     }
                     moveHistory.append(MoveHistoryItem(positionBeforeMove: positionBeforeMove, positionAfterMove: position.copy(), detailedMove: detail, usedTime: usedTime, scoreCp: moveColor == myColor ? myScoreCp : nil))
                     
